@@ -1,5 +1,8 @@
 "use client";
 
+import { useCalendar } from "@/hooks/useCalendar";
+import { useTasks } from "@/hooks/useTasks";
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 6) return "おつかれ、千葉さん";
@@ -15,17 +18,14 @@ function getDateString(): string {
 }
 
 export function GreetingHeader() {
-  // TODO: SWRで実データ取得
-  const todayTaskCount = 4;
-  const todayEventCount = 3;
+  const { tasks } = useTasks("today");
+  const { events } = useCalendar();
 
   return (
     <div className="animate-fade-in-up">
-      <h1 className="text-2xl font-bold text-[var(--color-foreground)]">
-        {getGreeting()}
-      </h1>
+      <h1 className="text-2xl font-bold text-[var(--color-foreground)]">{getGreeting()}</h1>
       <p className="mt-1 text-sm text-[var(--color-muted)]">
-        {getDateString()} ・ タスク{todayTaskCount}件 ・ 予定{todayEventCount}件
+        {getDateString()} ・ タスク{tasks.length}件 ・ 予定{events.length}件
       </p>
     </div>
   );
