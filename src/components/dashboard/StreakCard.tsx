@@ -1,12 +1,14 @@
 "use client";
 
-import { Flame, Trophy, Star } from "lucide-react";
+import { Flame, Star, Trophy } from "lucide-react";
+
+import { useGamification } from "@/hooks/useGamification";
 
 export function StreakCard() {
-  // モックデータ
-  const streak = 7;
-  const totalCompleted = 42;
-  const todayCompleted = 2;
+  const { gamification } = useGamification();
+
+  const streak = gamification?.currentStreak ?? 0;
+  const totalCompleted = gamification?.totalCompleted ?? 0;
 
   return (
     <section className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
@@ -18,7 +20,7 @@ export function StreakCard() {
           </div>
           <div className="flex items-center gap-1 px-2.5 py-1 bg-white/15 rounded-full">
             <Trophy size={12} />
-            <span className="text-xs font-medium">最高 14日</span>
+            <span className="text-xs font-medium">最高 {gamification?.longestStreak ?? 0}日</span>
           </div>
         </div>
 
@@ -30,24 +32,17 @@ export function StreakCard() {
 
           <div className="flex-1 flex gap-4">
             <div className="text-center">
-              <p className="text-lg font-bold">{todayCompleted}</p>
-              <p className="text-[10px] opacity-60">今日の完了</p>
-            </div>
-            <div className="text-center">
               <p className="text-lg font-bold">{totalCompleted}</p>
               <p className="text-[10px] opacity-60">累計完了</p>
             </div>
           </div>
         </div>
 
-        {/* 7日間のドット */}
         <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/15">
-          {["月","火","水","木","金","土","日"].map((day, i) => (
+          {["月", "火", "水", "木", "金", "土", "日"].map((day, i) => (
             <div key={day} className="flex-1 flex flex-col items-center gap-1">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                i < 7 ? "bg-white/20" : "bg-white/5"
-              }`}>
-                {i < 7 && <Star size={12} className="text-yellow-300" fill="currentColor" />}
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center ${i < Math.min(streak, 7) ? "bg-white/20" : "bg-white/5"}`}>
+                {i < Math.min(streak, 7) && <Star size={12} className="text-yellow-300" fill="currentColor" />}
               </div>
               <span className="text-[9px] opacity-50">{day}</span>
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import confetti from "canvas-confetti";
 import { useState } from "react";
 import { Check, ChevronDown, ChevronUp, Clock, Pencil, Trash2 } from "lucide-react";
 import type { Task, Priority } from "@/types";
@@ -41,16 +42,24 @@ function formatDueDate(dueDate?: string): string {
 
 interface TaskCardProps {
   task: Task;
+  onChanged?: () => Promise<unknown> | unknown;
 }
 
-export function TaskCard({ task }: TaskCardProps) {
+export function TaskCard({ task, onChanged }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [completed, setCompleted] = useState(task.completed);
 
-  const handleComplete = (e: React.MouseEvent) => {
+  const handleComplete = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    await fetch(`/api/tasks/${encodeURIComponent(task.id)}/complete`, { method: "POST" });
     setCompleted(true);
-    // TODO: API呼び出し + confetti
+    confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+    await onChanged?.();
+  };
+
+  const handleDelete = async () => {
+    await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
+    await onChanged?.();
   };
 
   return (
@@ -59,15 +68,12 @@ export function TaskCard({ task }: TaskCardProps) {
         completed ? "opacity-50" : ""
       }`}
     >
-      {/* メイン行 */}
       <div
         className="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-[var(--color-surface-hover)]"
         onClick={() => setExpanded(!expanded)}
       >
-        {/* 優先度カラーバー */}
         <div className={`w-1 h-10 rounded-full shrink-0 ${priorityColors[task.priority]}`} />
 
-        {/* チェックボタン */}
         <button
           onClick={handleComplete}
           className={`flex items-center justify-center w-6 h-6 rounded-full border-2 transition-all shrink-0 ${
@@ -80,11 +86,8 @@ export function TaskCard({ task }: TaskCardProps) {
           <Check size={14} className={completed ? "text-white" : "text-transparent"} />
         </button>
 
-        {/* タスク情報 */}
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium truncate ${
-            completed ? "line-through text-[var(--color-muted)]" : "text-[var(--color-foreground)]"
-          }`}>
+          <p className={`text-sm font-medium truncate ${completed ? "line-through text-[var(--color-muted)]" : "text-[var(--color-foreground)]"}`}>
             {task.title}
           </p>
           <div className="flex items-center gap-2 mt-1">
@@ -94,9 +97,7 @@ export function TaskCard({ task }: TaskCardProps) {
               </span>
             )}
             {task.dueDate && (
-              <span className={`flex items-center gap-1 text-[10px] ${
-                (task.overduedays ?? 0) > 0 ? "text-[var(--color-priority-high)] font-semibold" : "text-[var(--color-muted)]"
-              }`}>
+              <span className={`flex items-center gap-1 text-[10px] ${(task.overduedays ?? 0) > 0 ? "text-[var(--color-priority-high)] font-semibold" : "text-[var(--color-muted)]"}`}>
                 <Clock size={10} />
                 {formatDueDate(task.dueDate)}
               </span>
@@ -104,27 +105,22 @@ export function TaskCard({ task }: TaskCardProps) {
           </div>
         </div>
 
-        {/* 展開ボタン */}
-        {expanded
-          ? <ChevronUp size={16} className="text-[var(--color-muted)] shrink-0" />
-          : <ChevronDown size={16} className="text-[var(--color-border)] shrink-0" />
-        }
+        {expanded ? <ChevronUp size={16} className="text-[var(--color-muted)] shrink-0" /> : <ChevronDown size={16} className="text-[var(--color-border)] shrink-0" />}
       </div>
 
-      {/* 展開部分 */}
       {expanded && (
         <div className="px-4 pb-4 pt-0 border-t border-[var(--color-border-light)]">
-          {task.notes && (
-            <p className="text-xs text-[var(--color-muted)] mt-3 mb-3 leading-relaxed">
-              {task.notes}
-            </p>
-          )}
+          {task.notes && <p className="text-xs text-[var(--color-muted)] mt-3 mb-3 leading-relaxed">{task.notes}</p>}
           <div className="flex items-center gap-2 mt-3">
-            <span className={`text-[10px] font-medium px-2 py-1 rounded-full ${
-              task.priority === 1 ? "bg-[var(--color-priority-high-bg)] text-[var(--color-priority-high)]" :
-              task.priority === 2 ? "bg-[var(--color-priority-mid-bg)] text-[var(--color-priority-mid)]" :
-              "bg-[var(--color-priority-low-bg)] text-[var(--color-priority-low)]"
-            }`}>
+            <span
+              className={`text-[10px] font-medium px-2 py-1 rounded-full ${
+                task.priority === 1
+                  ? "bg-[var(--color-priority-high-bg)] text-[var(--color-priority-high)]"
+                  : task.priority === 2
+                    ? "bg-[var(--color-priority-mid-bg)] text-[var(--color-priority-mid)]"
+                    : "bg-[var(--color-priority-low-bg)] text-[var(--color-priority-low)]"
+              }`}
+            >
               優先度: {priorityLabels[task.priority]}
             </span>
           </div>
@@ -133,7 +129,10 @@ export function TaskCard({ task }: TaskCardProps) {
               <Pencil size={12} />
               編集
             </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--color-priority-high)] bg-[var(--color-priority-high)]/8 rounded-[var(--radius-md)] hover:bg-[var(--color-priority-high)]/15 transition-colors">
+            <button
+              onClick={handleDelete}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--color-priority-high)] bg-[var(--color-priority-high)]/8 rounded-[var(--radius-md)] hover:bg-[var(--color-priority-high)]/15 transition-colors"
+            >
               <Trash2 size={12} />
               削除
             </button>

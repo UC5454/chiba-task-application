@@ -2,10 +2,13 @@
 
 import { AlertCircle, ArrowRight } from "lucide-react";
 
-// TODO: SWRで実データ取得
-const overdueCount: number = 2;
+import { useTasks } from "@/hooks/useTasks";
 
 export function OverdueBanner() {
+  const { tasks } = useTasks("all");
+
+  const overdueCount = tasks.filter((task) => (task.overduedays ?? 0) > 0).length;
+
   if (overdueCount === 0) return null;
 
   return (
@@ -14,12 +17,8 @@ export function OverdueBanner() {
         <AlertCircle size={18} className="text-[var(--color-priority-high)]" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[var(--color-priority-high)]">
-          やり残し {overdueCount}件
-        </p>
-        <p className="text-xs text-[var(--color-muted)]">
-          今日やる？明日に延ばす？気にしないでOK
-        </p>
+        <p className="text-sm font-medium text-[var(--color-priority-high)]">やり残し {overdueCount}件</p>
+        <p className="text-xs text-[var(--color-muted)]">今日やる？明日に延ばす？気にしないでOK</p>
       </div>
       <ArrowRight size={16} className="text-[var(--color-priority-high)]/50 shrink-0" />
     </div>
