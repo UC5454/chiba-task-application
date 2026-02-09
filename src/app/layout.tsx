@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Providers } from "./providers";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 
@@ -30,11 +31,13 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="font-sans antialiased">
-        <main className="min-h-dvh pb-20 md:pb-0 md:pl-64">
-          {children}
-        </main>
-        <BottomNav />
-        <ServiceWorkerRegister />
+        <Providers>
+          <main className="min-h-dvh pb-20 md:pb-0 md:pl-64">
+            {children}
+          </main>
+          <BottomNav />
+          <ServiceWorkerRegister />
+        </Providers>
       </body>
     </html>
   );
