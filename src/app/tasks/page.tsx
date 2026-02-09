@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { OverdueSection } from "@/components/tasks/OverdueSection";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -11,11 +11,10 @@ type FilterType = "today" | "all" | "completed";
 
 export default function TasksPage() {
   const [filter, setFilter] = useState<FilterType>("today");
-  const { tasks, mutate } = useTasks(filter === "all" ? "all" : filter);
+  const { tasks, mutate } = useTasks(filter);
 
   const overdueTasks = tasks.filter((task) => !task.completed && (task.overduedays ?? 0) > 0);
-
-  const filteredTasks = filter === "all" ? tasks.filter((t) => !t.completed && (t.overduedays ?? 0) === 0) : tasks;
+  const filteredTasks = filter === "all" ? tasks.filter((task) => !task.completed && (task.overduedays ?? 0) === 0) : tasks;
 
   const handleQuickAdd = async () => {
     const title = window.prompt("タスク名を入力してください");
@@ -29,6 +28,16 @@ export default function TasksPage() {
 
     await mutate();
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("quickAdd") !== "1") return;
+
+    handleQuickAdd().finally(() => {
+      window.history.replaceState({}, "", "/tasks");
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
@@ -52,10 +61,11 @@ export default function TasksPage() {
             <TaskCard task={task} onChanged={mutate} />
           </div>
         ))}
+
         {filteredTasks.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
             <p className="text-4xl mb-3">{filter === "completed" ? "🎉" : "✨"}</p>
-            <p className="text-sm text-[var(--color-muted)]">{filter === "completed" ? "まだ完了タスクはないよ" : "タスクなし！自由時間にしよう"}</p>
+            <p className="text-sm text-[var(--color-muted)]">{filter === "completed" ? "まだ完了タスクはないよ" : "今はタスクがありません。+追加で一歩だけ進めよう"}</p>
           </div>
         )}
       </div>

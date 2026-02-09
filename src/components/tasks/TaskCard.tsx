@@ -57,7 +57,26 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
     await onChanged?.();
   };
 
-  const handleDelete = async () => {
+  const handleEdit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const title = window.prompt("タスク名を編集", task.title);
+    if (!title?.trim()) return;
+
+    const notes = window.prompt("メモを編集（任意）", task.notes ?? "");
+
+    await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: title.trim(), notes: notes ?? undefined }),
+    });
+
+    await onChanged?.();
+  };
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(`「${task.title}」を削除しますか？`)) return;
     await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
     await onChanged?.();
   };
@@ -125,7 +144,7 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
             </span>
           </div>
           <div className="flex items-center gap-2 mt-3">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/8 rounded-[var(--radius-md)] hover:bg-[var(--color-primary)]/15 transition-colors">
+            <button onClick={handleEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/8 rounded-[var(--radius-md)] hover:bg-[var(--color-primary)]/15 transition-colors">
               <Pencil size={12} />
               編集
             </button>

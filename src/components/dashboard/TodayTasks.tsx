@@ -34,11 +34,18 @@ export function TodayTasks() {
         <span className="text-xs text-[var(--color-muted)] bg-[var(--color-surface)] px-2.5 py-1 rounded-full">{tasks.length}件</span>
       </div>
 
-      <div className="space-y-2.5">
-        {tasks.slice(0, 5).map((task) => (
-          <TaskCard key={task.id} task={task} onComplete={handleComplete} />
-        ))}
-      </div>
+      {tasks.length === 0 ? (
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-8 text-center">
+          <p className="text-3xl mb-2">🌿</p>
+          <p className="text-sm text-[var(--color-muted)]">今日のタスクはまだありません</p>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {tasks.slice(0, 5).map((task) => (
+            <TaskCard key={task.id} task={task} onComplete={handleComplete} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

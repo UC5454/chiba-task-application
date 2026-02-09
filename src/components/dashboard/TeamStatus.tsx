@@ -43,6 +43,13 @@ export function TeamStatus() {
       </div>
 
       <div className="space-y-2">
+        {team.length === 0 && (
+          <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+            <p className="text-3xl mb-2">🤝</p>
+            <p className="text-sm text-[var(--color-muted)]">AI社員ステータスを読み込み中です</p>
+          </div>
+        )}
+
         {displayTeam.map((member) => (
           <div key={member.id} className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
             <div className="relative shrink-0">

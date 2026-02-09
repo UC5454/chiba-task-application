@@ -5,19 +5,22 @@ const GITHUB_REPO = "my-ai-team";
 const GITHUB_REF = process.env.GITHUB_TEAM_REPO_REF ?? "main";
 
 const EMPLOYEES: Array<AIEmployee & { path: string }> = [
-  { name: "神崎凛", id: "kanzaki-rin", team: "executive", role: "COO", avatarUrl: "", path: "神崎凛" },
-  { name: "白波瀬みなみ", id: "shirahase-minami", team: "secretary", role: "エグゼクティブ秘書", avatarUrl: "", path: "secretary/白波瀬みなみ" },
-  { name: "水瀬ことは", id: "minase-kotoha", team: "note-team", role: "リサーチャー", avatarUrl: "", path: "note-team/水瀬ことは" },
-  { name: "朝日つむぎ", id: "asahi-tsumugi", team: "note-team", role: "ライター", avatarUrl: "", path: "note-team/朝日つむぎ" },
-  { name: "橘そら", id: "tachibana-sora", team: "note-team", role: "デザイナー", avatarUrl: "", path: "note-team/橘そら" },
-  { name: "藤堂蓮", id: "todo-ren", team: "note-team", role: "品質管理", avatarUrl: "", path: "note-team/藤堂蓮" },
-  { name: "結城颯", id: "yuuki-sou", team: "web-team", role: "WEBディレクター", avatarUrl: "", path: "web-team/結城颯" },
-  { name: "桐谷凪", id: "kiritani-nagi", team: "web-team", role: "デザイナー", avatarUrl: "", path: "web-team/桐谷凪" },
-  { name: "真白悠", id: "mashiro-yuu", team: "web-team", role: "ライター", avatarUrl: "", path: "web-team/真白悠" },
-  { name: "蒼月海斗", id: "aotsuki-kaito", team: "web-team", role: "エンジニア", avatarUrl: "", path: "web-team/蒼月海斗" },
-  { name: "白銀司", id: "shirogane-tsukasa", team: "prompt-team", role: "プロンプトエンジニア", avatarUrl: "", path: "prompt-team/白銀司" },
-  { name: "氷室翔", id: "himuro-sho", team: "slides-team", role: "営業資料制作", avatarUrl: "", path: "slides-team/氷室翔" },
-  { name: "柚木陽菜", id: "yuzuki-hina", team: "slides-team", role: "研修資料制作", avatarUrl: "", path: "slides-team/柚木陽菜" },
+  { name: "リン", id: "rin", team: "executive", role: "COO", avatarUrl: "", path: "リン_executive_COO" },
+  { name: "ミナト", id: "minato", team: "coach", role: "パーソナルコーチ", avatarUrl: "", path: "ミナト_coach_パーソナルコーチ" },
+  { name: "ミナミ", id: "minami", team: "secretary", role: "エグゼクティブ秘書", avatarUrl: "", path: "ミナミ_secretary_エグゼクティブ秘書" },
+  { name: "コトハ", id: "kotoha", team: "note-team", role: "リサーチャー", avatarUrl: "", path: "note-team/コトハ_note-team_リサーチャー" },
+  { name: "ツムギ", id: "tsumugi", team: "note-team", role: "ライター", avatarUrl: "", path: "note-team/ツムギ_note-team_ライター" },
+  { name: "ソラ", id: "sora", team: "note-team", role: "ビジュアルデザイナー", avatarUrl: "", path: "note-team/ソラ_note-team_ビジュアルデザイナー" },
+  { name: "レン", id: "ren", team: "note-team", role: "品質管理", avatarUrl: "", path: "note-team/レン_note-team_品質管理" },
+  { name: "ソウ", id: "sou", team: "web-team", role: "WEBディレクター", avatarUrl: "", path: "web-team/ソウ_web-team_WEBディレクター" },
+  { name: "ナギ", id: "nagi", team: "web-team", role: "デザイナー", avatarUrl: "", path: "web-team/ナギ_web-team_デザイナー" },
+  { name: "ユウ", id: "yuu", team: "web-team", role: "ライター", avatarUrl: "", path: "web-team/ユウ_web-team_ライター" },
+  { name: "カイト", id: "kaito", team: "web-team", role: "エンジニア", avatarUrl: "", path: "web-team/カイト_web-team_エンジニア" },
+  { name: "ツカサ", id: "tsukasa", team: "prompt-team", role: "プロンプトエンジニア", avatarUrl: "", path: "prompt-team/ツカサ_prompt-team_プロンプトエンジニア" },
+  { name: "ショウ", id: "shou", team: "slides-team", role: "営業資料スペシャリスト", avatarUrl: "", path: "slides-team/ショウ_slides-team_営業資料スペシャリスト" },
+  { name: "ヒナ", id: "hina", team: "slides-team", role: "研修資料スペシャリスト", avatarUrl: "", path: "slides-team/ヒナ_slides-team_研修資料スペシャリスト" },
+  { name: "ヒカル", id: "hikaru", team: "video-team", role: "映像ディレクター", avatarUrl: "", path: "video-team/ヒカル_video-team_映像ディレクター" },
+  { name: "カナデ", id: "kanade", team: "video-team", role: "映像エディター", avatarUrl: "", path: "video-team/カナデ_video-team_映像エディター" },
 ];
 
 type GitHubContentResponse = {

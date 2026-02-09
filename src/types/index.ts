@@ -60,7 +60,7 @@ export interface CalendarEvent {
 export interface AIEmployee {
   name: string;
   id: string;
-  team: 'executive' | 'secretary' | 'note-team' | 'web-team' | 'prompt-team' | 'slides-team';
+  team: 'executive' | 'coach' | 'secretary' | 'note-team' | 'web-team' | 'prompt-team' | 'slides-team' | 'video-team';
   role: string;
   avatarUrl: string;
   currentTask?: string;
