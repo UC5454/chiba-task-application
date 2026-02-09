@@ -6,15 +6,26 @@ import type { ADHDSettings } from "@/types";
 
 const table = "adhd_settings";
 
+const defaults: ADHDSettings = {
+  maxDailyTasks: 5,
+  focusDuration: 25,
+  quietHoursStart: "22:00",
+  quietHoursEnd: "07:00",
+  gentleRemind: true,
+  celebrationEnabled: true,
+  autoReleaseEnabled: true,
+  autoReleaseDays: 14,
+};
+
 const toSettings = (row: Record<string, unknown> | null): ADHDSettings => ({
-  maxDailyTasks: Number(row?.max_daily_tasks ?? 5),
-  focusDuration: Number(row?.focus_duration ?? 25),
-  quietHoursStart: String(row?.quiet_hours_start ?? "22:00"),
-  quietHoursEnd: String(row?.quiet_hours_end ?? "07:00"),
-  gentleRemind: Boolean(row?.gentle_remind ?? true),
-  celebrationEnabled: Boolean(row?.celebration_enabled ?? true),
-  autoReleaseEnabled: Boolean(row?.auto_release_enabled ?? true),
-  autoReleaseDays: Number(row?.auto_release_days ?? 14),
+  maxDailyTasks: Number(row?.max_daily_tasks ?? defaults.maxDailyTasks),
+  focusDuration: Number(row?.focus_duration ?? defaults.focusDuration),
+  quietHoursStart: String(row?.quiet_hours_start ?? defaults.quietHoursStart),
+  quietHoursEnd: String(row?.quiet_hours_end ?? defaults.quietHoursEnd),
+  gentleRemind: Boolean(row?.gentle_remind ?? defaults.gentleRemind),
+  celebrationEnabled: Boolean(row?.celebration_enabled ?? defaults.celebrationEnabled),
+  autoReleaseEnabled: Boolean(row?.auto_release_enabled ?? defaults.autoReleaseEnabled),
+  autoReleaseDays: Number(row?.auto_release_days ?? defaults.autoReleaseDays),
 });
 
 export async function GET() {
@@ -23,10 +34,20 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = getSupabaseAdminClient();
-  const { data } = await supabase.from(table).select("*").limit(1).maybeSingle();
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase.from(table).select("*").limit(1).maybeSingle();
 
-  return NextResponse.json({ settings: toSettings(data) });
+    if (error) {
+      console.error("Supabase settings error:", error);
+      return NextResponse.json({ settings: defaults });
+    }
+
+    return NextResponse.json({ settings: toSettings(data) });
+  } catch (err) {
+    console.error("Supabase connection error:", err);
+    return NextResponse.json({ settings: defaults });
+  }
 }
 
 export async function PUT(request: Request) {
@@ -36,28 +57,32 @@ export async function PUT(request: Request) {
   }
 
   const body = (await request.json()) as Partial<ADHDSettings>;
-  const supabase = getSupabaseAdminClient();
 
-  const { data: existing } = await supabase.from(table).select("id").limit(1).maybeSingle();
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data: existing } = await supabase.from(table).select("id").limit(1).maybeSingle();
 
-  const payload = {
-    max_daily_tasks: body.maxDailyTasks,
-    focus_duration: body.focusDuration,
-    quiet_hours_start: body.quietHoursStart,
-    quiet_hours_end: body.quietHoursEnd,
-    gentle_remind: body.gentleRemind,
-    celebration_enabled: body.celebrationEnabled,
-    auto_release_enabled: body.autoReleaseEnabled,
-    auto_release_days: body.autoReleaseDays,
-  };
+    const payload = {
+      max_daily_tasks: body.maxDailyTasks,
+      focus_duration: body.focusDuration,
+      quiet_hours_start: body.quietHoursStart,
+      quiet_hours_end: body.quietHoursEnd,
+      gentle_remind: body.gentleRemind,
+      celebration_enabled: body.celebrationEnabled,
+      auto_release_enabled: body.autoReleaseEnabled,
+      auto_release_days: body.autoReleaseDays,
+    };
 
-  if (existing?.id) {
-    await supabase.from(table).update(payload).eq("id", existing.id);
-  } else {
-    await supabase.from(table).insert(payload);
+    if (existing?.id) {
+      await supabase.from(table).update(payload).eq("id", existing.id);
+    } else {
+      await supabase.from(table).insert(payload);
+    }
+
+    const { data } = await supabase.from(table).select("*").limit(1).maybeSingle();
+    return NextResponse.json({ settings: toSettings(data) });
+  } catch (err) {
+    console.error("Supabase settings write error:", err);
+    return NextResponse.json({ error: "Failed to save settings" }, { status: 500 });
   }
-
-  const { data } = await supabase.from(table).select("*").limit(1).maybeSingle();
-
-  return NextResponse.json({ settings: toSettings(data) });
 }

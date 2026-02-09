@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getAccessTokenFromRefreshToken } from "@/lib/google-auth";
 import { listTasks } from "@/lib/google-tasks";
 import { generateReminders } from "@/lib/reminders";
 import { sendPushNotification } from "@/lib/push";
@@ -26,7 +27,7 @@ const postSlack = async (message: string) => {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: message }),
-  });
+  }).catch(() => {});
 };
 
 export async function GET(request: Request) {
@@ -34,16 +35,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const accessToken = process.env.REMINDER_GOOGLE_ACCESS_TOKEN;
+  const accessToken = await getAccessTokenFromRefreshToken();
   if (!accessToken) {
-    return NextResponse.json({ error: "REMINDER_GOOGLE_ACCESS_TOKEN is missing" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to obtain access token. Check GOOGLE_REFRESH_TOKEN." }, { status: 500 });
   }
 
-  const supabase = getSupabaseAdminClient();
-  const [{ data: settings }, { data: subscriptions }] = await Promise.all([
-    supabase.from("adhd_settings").select("*").limit(1).maybeSingle(),
-    supabase.from("push_subscriptions").select("endpoint, keys_p256dh, keys_auth"),
-  ]);
+  let settings = null;
+  let subscriptions: Array<{ endpoint: string; keys_p256dh: string; keys_auth: string }> = [];
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const [settingsResult, subsResult] = await Promise.all([
+      supabase.from("adhd_settings").select("*").limit(1).maybeSingle(),
+      supabase.from("push_subscriptions").select("endpoint, keys_p256dh, keys_auth"),
+    ]);
+    settings = settingsResult.data;
+    subscriptions = subsResult.data ?? [];
+  } catch {
+    // Supabase unavailable — continue with defaults
+  }
 
   const tasks = await listTasks(accessToken);
 
@@ -59,7 +69,7 @@ export async function GET(request: Request) {
   for (const reminder of reminders) {
     const message = reminder.message;
 
-    for (const sub of subscriptions ?? []) {
+    for (const sub of subscriptions) {
       const result = await sendPushNotification(
         {
           endpoint: sub.endpoint,
