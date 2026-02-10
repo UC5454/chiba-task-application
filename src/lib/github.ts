@@ -1,4 +1,4 @@
-import type { AIEmployee } from "@/types";
+import type { AIEmployee, DailyLog } from "@/types";
 
 const GITHUB_OWNER = "UC5454";
 const GITHUB_REPO = "my-ai-team";
@@ -27,6 +27,13 @@ type GitHubContentResponse = {
   content?: string;
   encoding?: string;
   type?: string;
+  name?: string;
+};
+
+type GitHubDirEntry = {
+  name: string;
+  type: string;
+  path: string;
 };
 
 const fetchRepoFile = async (path: string): Promise<string> => {
@@ -65,6 +72,53 @@ const parseCurrentTask = (markdown: string) => {
 };
 
 const countInbox = (markdown: string) => markdown.split("\n").filter((line) => line.trim().startsWith("- [ ]")).length;
+
+const fetchRepoDir = async (path: string): Promise<GitHubDirEntry[]> => {
+  const token = process.env.GITHUB_TOKEN;
+  const response = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${encodeURI(path)}?ref=${GITHUB_REF}`, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    next: { revalidate: 300 },
+  }).catch(() => null);
+
+  if (!response?.ok) return [];
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+};
+
+export const getDailyLogs = async (date?: string): Promise<DailyLog[]> => {
+  const targetDate = date ?? new Date().toISOString().slice(0, 10);
+  const fileName = `${targetDate}.md`;
+
+  const logs = await Promise.all(
+    EMPLOYEES.map(async (employee) => {
+      const content = await fetchRepoFile(`${employee.path}/daily-logs/${fileName}`);
+      if (!content) return null;
+      return {
+        employeeId: employee.id,
+        employeeName: employee.name,
+        team: employee.team,
+        date: targetDate,
+        content,
+      } satisfies DailyLog;
+    }),
+  );
+
+  return logs.filter((log): log is DailyLog => log !== null);
+};
+
+export const getDailyLogDates = async (employeePath: string): Promise<string[]> => {
+  const entries = await fetchRepoDir(`${employeePath}/daily-logs`);
+  return entries
+    .filter((e) => e.type === "file" && e.name.endsWith(".md") && !e.name.startsWith("_"))
+    .map((e) => e.name.replace(".md", ""))
+    .sort()
+    .reverse();
+};
+
+export const getEmployees = () => EMPLOYEES;
 
 export const getTeamStatus = async (): Promise<AIEmployee[]> => {
   const team = await Promise.all(

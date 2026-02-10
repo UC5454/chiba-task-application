@@ -114,6 +114,15 @@ export interface ReminderAction {
   action: 'reschedule_today' | 'reschedule_tomorrow' | 'reschedule_week' | 'release' | 'open';
 }
 
+// AI社員日報
+export interface DailyLog {
+  employeeId: string;
+  employeeName: string;
+  team: AIEmployee["team"];
+  date: string; // YYYY-MM-DD
+  content: string; // Markdown本文
+}
+
 // ダッシュボード表示用
 export interface DashboardData {
   greeting: string;
