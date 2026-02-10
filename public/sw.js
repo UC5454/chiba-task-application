@@ -1,6 +1,5 @@
-const CACHE_NAME = "sou-task-static-v1";
+const CACHE_NAME = "sou-task-static-v2";
 const STATIC_ASSETS = [
-  "/",
   "/manifest.json",
   "/icons/icon-192.svg",
   "/icons/icon-512.svg",
@@ -17,9 +16,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys
-          .filter((key) => key !== CACHE_NAME)
-          .map((key) => caches.delete(key)),
+        keys.map((key) => caches.delete(key)),
       ),
     ),
   );
@@ -33,6 +30,17 @@ self.addEventListener("fetch", (event) => {
 
   const requestUrl = new URL(event.request.url);
   if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  // Never cache API routes or auth endpoints
+  if (requestUrl.pathname.startsWith("/api/")) {
+    return;
+  }
+
+  // Only cache static assets from the pre-defined list
+  const isStaticAsset = STATIC_ASSETS.some((asset) => requestUrl.pathname === asset);
+  if (!isStaticAsset) {
     return;
   }
 
@@ -52,7 +60,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
           return response;
         })
-        .catch(() => caches.match("/"));
+        .catch(() => new Response("Offline", { status: 503 }));
     }),
   );
 });
