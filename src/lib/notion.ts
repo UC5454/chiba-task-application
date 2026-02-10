@@ -243,81 +243,40 @@ export const syncDailyLogToNotion = async (log: DailyLog): Promise<string | null
   const notion = getNotionClient();
   if (!notion || !dailyLogDatabaseId) return null;
 
-  const notionAny = notion as unknown as {
-    databases?: { query?: (args: Record<string, unknown>) => Promise<{ results: Array<{ id: string }> }> };
-    dataSources?: { query?: (args: Record<string, unknown>) => Promise<{ results: Array<{ id: string }> }> };
-  };
-
-  const queryFn = notionAny.databases?.query ?? notionAny.dataSources?.query;
-  if (!queryFn) return null;
-
-  // 既存ページをチェック（同一日・同一社員の重複防止）
-  const existing = await queryFn({
-    database_id: dailyLogDatabaseId,
-    data_source_id: dailyLogDatabaseId,
-    filter: {
-      and: [
-        { property: "Date", date: { equals: log.date } },
-        { property: "Employee", select: { equals: log.employeeName } },
-      ],
-    },
-    page_size: 1,
-  }).catch(() => ({ results: [] }));
-
-  if (existing.results.length > 0) {
-    // 既存ページを更新
-    const pageId = existing.results[0].id;
-    await notion.pages.update({
-      page_id: pageId,
-      properties: {
-        Title: { title: toRichText(`${log.date} ${log.employeeName}`) },
-        Team: { select: { name: log.team } },
-      },
-    });
-
-    // ブロックの子要素を取得して削除、新しい内容で置換
-    const children = await notion.blocks.children.list({ block_id: pageId, page_size: 100 });
-    await Promise.all(
-      children.results.map((block) => notion.blocks.delete({ block_id: block.id }).catch(() => undefined)),
-    );
-
-    const blocks = markdownToBlocks(log.content);
-    if (blocks.length > 0) {
-      await notion.blocks.children.append({ block_id: pageId, children: blocks as Parameters<typeof notion.blocks.children.append>[0]["children"] });
-    }
-
-    return pageId;
-  }
-
-  // 新規作成
+  // Notion APIのrich_textは2000文字制限があるため、ブロックに分割して本文を書き込む
   const blocks = markdownToBlocks(log.content);
+
+  // Notion pages.create でDBに新規ページ作成（childrenは100ブロック制限）
   const created = await notion.pages.create({
-    parent: { database_id: dailyLogDatabaseId },
+    parent: { data_source_id: dailyLogDatabaseId },
     properties: {
-      Title: { title: toRichText(`${log.date} ${log.employeeName}`) },
+      Name: { title: toRichText(`${log.date} ${log.employeeName}`) },
       Date: { date: { start: log.date } },
       Employee: { select: { name: log.employeeName } },
       Team: { select: { name: log.team } },
     },
-    children: blocks as Parameters<typeof notion.pages.create>[0]["children"],
+    children: blocks.slice(0, 100) as Parameters<typeof notion.pages.create>[0]["children"],
   });
 
   return created.id;
 };
 
-export const syncDailyLogsToNotion = async (logs: DailyLog[]): Promise<{ synced: number; errors: number }> => {
+export const syncDailyLogsToNotion = async (logs: DailyLog[]): Promise<{ synced: number; errors: number; errorDetails?: string[] }> => {
   let synced = 0;
   let errors = 0;
+  const errorDetails: string[] = [];
 
   for (const log of logs) {
     try {
       await syncDailyLogToNotion(log);
       synced++;
-    } catch (error) {
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error(`Failed to sync daily log for ${log.employeeName} on ${log.date}:`, error);
+      errorDetails.push(`${log.employeeName}: ${msg}`);
       errors++;
     }
   }
 
-  return { synced, errors };
+  return { synced, errors, ...(errorDetails.length > 0 ? { errorDetails } : {}) };
 };

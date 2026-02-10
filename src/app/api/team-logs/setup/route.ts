@@ -86,8 +86,10 @@ export async function POST() {
       databaseId: db.id,
       instruction: `Set NOTION_DAILY_LOG_DB_ID=${db.id} in your environment variables`,
     });
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Setup error:", err);
-    return NextResponse.json({ error: "Failed to create database" }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    const body = (err as { body?: string })?.body;
+    return NextResponse.json({ error: "Failed to create database", detail: message, body }, { status: 500 });
   }
 }
