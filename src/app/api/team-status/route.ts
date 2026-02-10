@@ -13,14 +13,19 @@ export async function GET() {
     return NextResponse.json({ team: [] });
   }
 
-  const team = await getTeamStatus();
+  try {
+    const team = await getTeamStatus();
 
-  return NextResponse.json(
-    { team },
-    {
-      headers: {
-        "Cache-Control": "s-maxage=300, stale-while-revalidate=300",
+    return NextResponse.json(
+      { team },
+      {
+        headers: {
+          "Cache-Control": "s-maxage=300, stale-while-revalidate=300",
+        },
       },
-    },
-  );
+    );
+  } catch (err) {
+    console.error("Team status error:", err);
+    return NextResponse.json({ team: [] });
+  }
 }

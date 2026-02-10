@@ -14,21 +14,27 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const { id } = await params;
-  const body = (await request.json()) as {
-    content?: string;
-    tags?: string[];
-    relatedTaskId?: string;
-    relatedTaskTitle?: string;
-  };
 
-  await updateMemo(id, {
-    content: body.content,
-    tags: body.tags,
-    relatedTaskId: body.relatedTaskId,
-    relatedTaskTitle: body.relatedTaskTitle,
-  });
+  try {
+    const body = (await request.json()) as {
+      content?: string;
+      tags?: string[];
+      relatedTaskId?: string;
+      relatedTaskTitle?: string;
+    };
 
-  return NextResponse.json({ success: true });
+    await updateMemo(id, {
+      content: body.content,
+      tags: body.tags,
+      relatedTaskId: body.relatedTaskId,
+      relatedTaskTitle: body.relatedTaskTitle,
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Note PUT error:", err);
+    return NextResponse.json({ error: "メモの更新に失敗しました" }, { status: 500 });
+  }
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -42,7 +48,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  await deleteMemo(id);
 
-  return NextResponse.json({ success: true });
+  try {
+    await deleteMemo(id);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Note DELETE error:", err);
+    return NextResponse.json({ error: "メモの削除に失敗しました" }, { status: 500 });
+  }
 }

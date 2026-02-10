@@ -40,14 +40,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
-  const body = (await request.json()) as { newDueDate?: string };
 
-  if (!body.newDueDate) {
-    return NextResponse.json({ error: "newDueDate is required" }, { status: 400 });
+  try {
+    const body = (await request.json()) as { newDueDate?: string };
+
+    if (!body.newDueDate) {
+      return NextResponse.json({ error: "newDueDate is required" }, { status: 400 });
+    }
+
+    const dueDate = toDateByPreset(body.newDueDate);
+    const task = await updateTask(accessToken, id, { dueDate });
+
+    return NextResponse.json({ task });
+  } catch (err) {
+    console.error("Task reschedule error:", err);
+    return NextResponse.json({ error: "タスクのリスケジュールに失敗しました" }, { status: 500 });
   }
-
-  const dueDate = toDateByPreset(body.newDueDate);
-  const task = await updateTask(accessToken, id, { dueDate });
-
-  return NextResponse.json({ task });
 }

@@ -14,13 +14,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ notes: [] });
   }
 
-  const url = new URL(request.url);
-  const tag = url.searchParams.get("tag") ?? undefined;
-  const search = url.searchParams.get("search") ?? undefined;
+  try {
+    const url = new URL(request.url);
+    const tag = url.searchParams.get("tag") ?? undefined;
+    const search = url.searchParams.get("search") ?? undefined;
 
-  const notes = await listMemos(tag, search);
+    const notes = await listMemos(tag, search);
 
-  return NextResponse.json({ notes });
+    return NextResponse.json({ notes });
+  } catch (err) {
+    console.error("Notes GET error:", err);
+    return NextResponse.json({ notes: [] });
+  }
 }
 
 export async function POST(request: Request) {
@@ -33,16 +38,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Notion APIが設定されていません" }, { status: 503 });
   }
 
-  const body = (await request.json()) as MemoCreateInput & { relatedTaskTitle?: string };
-  if (!body.content?.trim()) {
-    return NextResponse.json({ error: "content is required" }, { status: 400 });
+  try {
+    const body = (await request.json()) as MemoCreateInput & { relatedTaskTitle?: string };
+    if (!body.content?.trim()) {
+      return NextResponse.json({ error: "content is required" }, { status: 400 });
+    }
+
+    const note = await createMemo(body.content.trim(), body.tags ?? [], body.relatedTaskId ? { id: body.relatedTaskId, title: body.relatedTaskTitle } : undefined);
+
+    if (!note) {
+      return NextResponse.json({ error: "Notion is not configured" }, { status: 503 });
+    }
+
+    return NextResponse.json({ note }, { status: 201 });
+  } catch (err) {
+    console.error("Notes POST error:", err);
+    return NextResponse.json({ error: "メモの保存に失敗しました" }, { status: 500 });
   }
-
-  const note = await createMemo(body.content.trim(), body.tags ?? [], body.relatedTaskId ? { id: body.relatedTaskId, title: body.relatedTaskTitle } : undefined);
-
-  if (!note) {
-    return NextResponse.json({ error: "Notion is not configured" }, { status: 503 });
-  }
-
-  return NextResponse.json({ note }, { status: 201 });
 }

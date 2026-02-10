@@ -64,36 +64,41 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const filter = new URL(request.url).searchParams.get("filter");
-  const tasks = await listTasks(accessToken);
+  try {
+    const filter = new URL(request.url).searchParams.get("filter");
+    const tasks = await listTasks(accessToken);
 
-  const supabase = getSupabaseAdminClient();
-  const { data: metadataRows } = await supabase
-    .from(taskMetadataTable)
-    .select("google_task_id, priority, category, assigned_ai_employee, estimated_minutes")
-    .in(
-      "google_task_id",
-      tasks.map((task) => task.googleTaskId),
-    );
+    const supabase = getSupabaseAdminClient();
+    const { data: metadataRows } = await supabase
+      .from(taskMetadataTable)
+      .select("google_task_id, priority, category, assigned_ai_employee, estimated_minutes")
+      .in(
+        "google_task_id",
+        tasks.map((task) => task.googleTaskId),
+      );
 
-  const now = Date.now();
-  const merged = mergeWithMetadata(tasks, (metadataRows as TaskMetadataRow[] | null) ?? []).map((task) => {
-    if (!task.dueDate || task.completed) {
-      return task;
-    }
+    const now = Date.now();
+    const merged = mergeWithMetadata(tasks, (metadataRows as TaskMetadataRow[] | null) ?? []).map((task) => {
+      if (!task.dueDate || task.completed) {
+        return task;
+      }
 
-    const overdueMs = now - new Date(task.dueDate).getTime();
-    if (overdueMs <= 0) {
-      return task;
-    }
+      const overdueMs = now - new Date(task.dueDate).getTime();
+      if (overdueMs <= 0) {
+        return task;
+      }
 
-    return {
-      ...task,
-      overduedays: Math.max(1, Math.floor(overdueMs / (1000 * 60 * 60 * 24))),
-    };
-  });
+      return {
+        ...task,
+        overduedays: Math.max(1, Math.floor(overdueMs / (1000 * 60 * 60 * 24))),
+      };
+    });
 
-  return NextResponse.json({ tasks: filterTasks(merged, filter) });
+    return NextResponse.json({ tasks: filterTasks(merged, filter) });
+  } catch (err) {
+    console.error("Tasks GET error:", err);
+    return NextResponse.json({ error: "タスクの取得に失敗しました" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -102,46 +107,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as TaskCreateInput & {
-    listId?: string;
-    assignedAiEmployee?: string;
-    estimatedMinutes?: number;
-  };
+  try {
+    const body = (await request.json()) as TaskCreateInput & {
+      listId?: string;
+      assignedAiEmployee?: string;
+      estimatedMinutes?: number;
+    };
 
-  if (!body.title?.trim()) {
-    return NextResponse.json({ error: "title is required" }, { status: 400 });
-  }
+    if (!body.title?.trim()) {
+      return NextResponse.json({ error: "title is required" }, { status: 400 });
+    }
 
-  const dueDate = body.dueDate ?? new Date().toISOString();
-  const createdTask = await createTask(accessToken, {
-    title: body.title.trim(),
-    notes: body.notes,
-    dueDate,
-    listId: body.listId,
-  });
+    const dueDate = body.dueDate ?? new Date().toISOString();
+    const createdTask = await createTask(accessToken, {
+      title: body.title.trim(),
+      notes: body.notes,
+      dueDate,
+      listId: body.listId,
+    });
 
-  const supabase = getSupabaseAdminClient();
-  await supabase.from(taskMetadataTable).upsert(
-    {
-      google_task_id: createdTask.googleTaskId,
-      priority: body.priority ?? 2,
-      category: body.category ?? null,
-      assigned_ai_employee: body.assignedAiEmployee ?? null,
-      estimated_minutes: body.estimatedMinutes ?? null,
-    },
-    { onConflict: "google_task_id" },
-  );
-
-  return NextResponse.json(
-    {
-      task: {
-        ...createdTask,
+    const supabase = getSupabaseAdminClient();
+    await supabase.from(taskMetadataTable).upsert(
+      {
+        google_task_id: createdTask.googleTaskId,
         priority: body.priority ?? 2,
-        category: body.category,
-        assignedAiEmployee: body.assignedAiEmployee,
-        estimatedMinutes: body.estimatedMinutes,
+        category: body.category ?? null,
+        assigned_ai_employee: body.assignedAiEmployee ?? null,
+        estimated_minutes: body.estimatedMinutes ?? null,
       },
-    },
-    { status: 201 },
-  );
+      { onConflict: "google_task_id" },
+    );
+
+    return NextResponse.json(
+      {
+        task: {
+          ...createdTask,
+          priority: body.priority ?? 2,
+          category: body.category,
+          assignedAiEmployee: body.assignedAiEmployee,
+          estimatedMinutes: body.estimatedMinutes,
+        },
+      },
+      { status: 201 },
+    );
+  } catch (err) {
+    console.error("Tasks POST error:", err);
+    return NextResponse.json({ error: "タスクの作成に失敗しました" }, { status: 500 });
+  }
 }

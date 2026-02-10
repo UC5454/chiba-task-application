@@ -9,6 +9,11 @@ export async function GET() {
     return NextResponse.json({ events: [] });
   }
 
-  const events = await getTodayEvents(accessToken);
-  return NextResponse.json({ events });
+  try {
+    const events = await getTodayEvents(accessToken);
+    return NextResponse.json({ events });
+  } catch (err) {
+    console.error("Calendar GET error:", err);
+    return NextResponse.json({ events: [] });
+  }
 }

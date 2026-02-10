@@ -18,19 +18,24 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   const { id } = await params;
 
-  const task = await getTaskById(accessToken, id);
-  await completeTask(accessToken, id);
-  await writeTaskHistory(task, "完了");
+  try {
+    const task = await getTaskById(accessToken, id);
+    await completeTask(accessToken, id);
+    await writeTaskHistory(task, "完了").catch((err) => console.warn("writeTaskHistory failed:", err));
 
-  const tasks = await listTasks(accessToken);
-  const remainingTodayTasks = tasks.filter((item) => !item.completed && item.dueDate && isToday(new Date(item.dueDate))).length;
-  const remainingOverdueTasks = tasks.filter((item) => !item.completed && item.dueDate && new Date(item.dueDate).getTime() < Date.now()).length;
+    const tasks = await listTasks(accessToken);
+    const remainingTodayTasks = tasks.filter((item) => !item.completed && item.dueDate && isToday(new Date(item.dueDate))).length;
+    const remainingOverdueTasks = tasks.filter((item) => !item.completed && item.dueDate && new Date(item.dueDate).getTime() < Date.now()).length;
 
-  await updateGamificationOnComplete({
-    completedAt: new Date(),
-    remainingTodayTasks,
-    remainingOverdueTasks,
-  });
+    await updateGamificationOnComplete({
+      completedAt: new Date(),
+      remainingTodayTasks,
+      remainingOverdueTasks,
+    }).catch((err) => console.warn("updateGamification failed:", err));
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Task complete error:", err);
+    return NextResponse.json({ error: "タスクの完了に失敗しました" }, { status: 500 });
+  }
 }

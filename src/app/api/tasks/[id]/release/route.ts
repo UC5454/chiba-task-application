@@ -13,10 +13,15 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   const { id } = await params;
 
-  const task = await getTaskById(accessToken, id);
-  await writeTaskHistory(task, "手放し");
-  await updateGamificationOnRelease();
-  await deleteTask(accessToken, id);
+  try {
+    const task = await getTaskById(accessToken, id);
+    await writeTaskHistory(task, "手放し").catch((err) => console.warn("writeTaskHistory failed:", err));
+    await updateGamificationOnRelease().catch((err) => console.warn("updateGamification failed:", err));
+    await deleteTask(accessToken, id);
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Task release error:", err);
+    return NextResponse.json({ error: "タスクの手放しに失敗しました" }, { status: 500 });
+  }
 }
