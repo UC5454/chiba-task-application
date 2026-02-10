@@ -6,11 +6,12 @@ import { AlertCircle, ArrowRight } from "lucide-react";
 import { useTasks } from "@/hooks/useTasks";
 
 export function OverdueBanner() {
-  const { tasks, isLoading } = useTasks("all");
+  const { tasks, isLoading, error } = useTasks("all");
 
   const overdueCount = tasks.filter((task) => (task.overduedays ?? 0) > 0).length;
 
   if (isLoading) return null;
+  if (error) return null;
   if (overdueCount === 0) return null;
 
   return (

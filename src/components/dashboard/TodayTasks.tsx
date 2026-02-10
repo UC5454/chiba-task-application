@@ -1,9 +1,12 @@
 "use client";
 
 import { Check, ChevronRight, Clock } from "lucide-react";
+import confetti from "canvas-confetti";
 import type { Priority, Task } from "@/types";
 
 import { useTasks } from "@/hooks/useTasks";
+import { useToast } from "@/components/ui/ToastProvider";
+import { LoginPrompt } from "@/components/ui/LoginPrompt";
 
 const priorityColors: Record<Priority, string> = {
   1: "bg-[var(--color-priority-high)]",
@@ -21,10 +24,26 @@ const categoryLabels: Record<string, string> = {
 
 export function TodayTasks() {
   const { tasks, mutate, isLoading, error } = useTasks("today");
+  const { toast } = useToast();
 
   const handleComplete = async (taskId: string) => {
-    await fetch(`/api/tasks/${encodeURIComponent(taskId)}/complete`, { method: "POST" });
-    await mutate();
+    try {
+      const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/complete`, { method: "POST" });
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+      toast.success("完了したよ！");
+      await mutate();
+    } catch (err) {
+      console.error(err);
+      toast.error("完了できなかった。もう一度試してみてね。");
+    }
   };
 
   if (isLoading) {
@@ -51,6 +70,17 @@ export function TodayTasks() {
   }
 
   if (error) {
+    if (error instanceof Error && error.message === "ログインが必要です") {
+      return (
+        <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-[var(--color-foreground)]">今日やること</h2>
+          </div>
+          <LoginPrompt />
+        </section>
+      );
+    }
+
     return (
       <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
         <div className="flex items-center justify-between mb-3">

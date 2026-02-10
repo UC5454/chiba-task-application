@@ -44,19 +44,7 @@ export function TodaySchedule() {
   }
 
   if (error) {
-    return (
-      <section className="animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
-            <Calendar size={16} className="text-[var(--color-primary)]" />
-            今日のスケジュール
-          </h2>
-        </div>
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] px-4 py-6 text-center text-sm text-[var(--color-muted)]">
-          データを読み込めませんでした
-        </div>
-      </section>
-    );
+    return null;
   }
 
   return (

@@ -48,7 +48,14 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!response.ok) throw new Error("save failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
       await mutate();
       setSaveState("saved");
       toast.success("設定を保存したよ。");
@@ -88,7 +95,14 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(subscription),
       });
-      if (!response.ok) throw new Error("subscribe failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
 
       toast.success("プッシュ通知を有効にしたよ。");
       return true;
@@ -115,7 +129,14 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint: existing.endpoint }),
       });
-      if (!response.ok) throw new Error("unsubscribe failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
 
       await existing.unsubscribe();
       toast.success("プッシュ通知をオフにしたよ。");

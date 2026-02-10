@@ -59,7 +59,14 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
     e.stopPropagation();
     try {
       const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/complete`, { method: "POST" });
-      if (!response.ok) throw new Error("complete failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
       setCompleted(true);
       confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
       toast.success("完了したよ！");
@@ -93,7 +100,14 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, notes: values.notes?.trim() || undefined }),
       });
-      if (!response.ok) throw new Error("update failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
       toast.success("更新したよ。");
       setEditOpen(false);
       await onChanged?.();
@@ -106,7 +120,14 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
   const confirmDelete = async () => {
     try {
       const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("delete failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
       toast.success("削除したよ。");
       setDeleteOpen(false);
       await onChanged?.();

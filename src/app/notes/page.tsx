@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { useNotes } from "@/hooks/useNotes";
+import { useToast } from "@/components/ui/ToastProvider";
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -25,6 +26,7 @@ function NotesContent() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showNewMemo, setShowNewMemo] = useState(false);
   const [newMemoText, setNewMemoText] = useState("");
+  const { toast } = useToast();
 
   const { notes, mutate } = useNotes(selectedTag, searchQuery);
   const allTags = useMemo(() => Array.from(new Set(notes.flatMap((m) => m.tags))), [notes]);
@@ -38,15 +40,29 @@ function NotesContent() {
   const handleSave = async () => {
     if (!newMemoText.trim()) return;
 
-    await fetch("/api/notes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: newMemoText.trim(), tags: selectedTag ? [selectedTag] : [] }),
-    });
+    try {
+      const response = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newMemoText.trim(), tags: selectedTag ? [selectedTag] : [] }),
+      });
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
 
-    setNewMemoText("");
-    setShowNewMemo(false);
-    await mutate();
+      setNewMemoText("");
+      setShowNewMemo(false);
+      await mutate();
+      toast.success("メモを保存したよ。");
+    } catch (error) {
+      console.error(error);
+      toast.error("メモを保存できなかった。もう一度試してみてね。");
+    }
   };
 
   return (

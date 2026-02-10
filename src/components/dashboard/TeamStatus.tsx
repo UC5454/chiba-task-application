@@ -58,7 +58,7 @@ export function TeamStatus() {
           </h2>
         </div>
         <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
-          <p className="text-sm text-[var(--color-muted)]">AI社員ステータスを取得できませんでした</p>
+          <p className="text-sm text-[var(--color-muted)]">接続できませんでした</p>
         </div>
       </section>
     );

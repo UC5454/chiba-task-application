@@ -33,7 +33,14 @@ export default function TasksPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title }),
       });
-      if (!response.ok) throw new Error("create failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
       toast.success("タスクを追加したよ。");
       setQuickAddOpen(false);
       await mutate();

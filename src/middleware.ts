@@ -6,6 +6,11 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
 
   if (!token) {
+    // API routes: return 401 JSON instead of redirecting to signin page
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const signInUrl = new URL("/api/auth/signin", request.url);
     signInUrl.searchParams.set("callbackUrl", request.url);
     return NextResponse.redirect(signInUrl);

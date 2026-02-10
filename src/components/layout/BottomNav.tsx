@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Home, Target, Plus, StickyNote, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { mutate } from "swr";
+import { useSWRConfig } from "swr";
 
 import { useGamification } from "@/hooks/useGamification";
 import { InputDialog } from "@/components/ui/InputDialog";
@@ -23,6 +23,7 @@ export function BottomNav() {
   const { gamification } = useGamification();
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const { toast } = useToast();
+  const { mutate } = useSWRConfig();
 
   const handleQuickAdd = () => {
     setQuickAddOpen(true);
@@ -41,10 +42,18 @@ export function BottomNav() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title }),
       });
-      if (!response.ok) throw new Error("create failed");
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
       toast.success("タスクを追加したよ。");
       setQuickAddOpen(false);
-      await mutate((key) => typeof key === "string" && key.startsWith("/api/tasks"));
+      mutate("/api/tasks?filter=today");
+      mutate("/api/tasks?filter=all");
     } catch (error) {
       console.error(error);
       toast.error("追加できなかった。もう一度試してみてね。");
