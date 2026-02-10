@@ -9,6 +9,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!process.env.GITHUB_TOKEN) {
+    return NextResponse.json({ team: [] });
+  }
+
   const team = await getTeamStatus();
 
   return NextResponse.json(

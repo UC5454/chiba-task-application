@@ -89,6 +89,9 @@ export interface Badge {
 export interface ADHDSettings {
   maxDailyTasks: number;
   focusDuration: number;
+  overfocusAlert: number;
+  breakDuration: number;
+  slackNotifyEnabled: boolean;
   quietHoursStart: string; // "HH:mm"
   quietHoursEnd: string;
   gentleRemind: boolean;

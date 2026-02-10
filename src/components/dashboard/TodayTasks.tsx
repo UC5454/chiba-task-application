@@ -20,12 +20,48 @@ const categoryLabels: Record<string, string> = {
 };
 
 export function TodayTasks() {
-  const { tasks, mutate } = useTasks("today");
+  const { tasks, mutate, isLoading, error } = useTasks("today");
 
   const handleComplete = async (taskId: string) => {
     await fetch(`/api/tasks/${encodeURIComponent(taskId)}/complete`, { method: "POST" });
     await mutate();
   };
+
+  if (isLoading) {
+    return (
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-[var(--color-foreground)]">今日やること</h2>
+          <span className="text-xs text-[var(--color-muted)] bg-[var(--color-surface)] px-2.5 py-1 rounded-full">...</span>
+        </div>
+        <div className="space-y-2.5">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <div key={idx} className="animate-pulse flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+              <div className="w-1 h-10 rounded-full bg-[var(--color-border-light)]" />
+              <div className="w-6 h-6 rounded-full bg-[var(--color-border-light)]" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="h-3 w-3/4 rounded bg-[var(--color-border-light)]" />
+                <div className="h-2 w-1/3 rounded bg-[var(--color-border-light)]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-[var(--color-foreground)]">今日やること</h2>
+        </div>
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-6 text-center text-sm text-[var(--color-muted)]">
+          データを読み込めませんでした
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>

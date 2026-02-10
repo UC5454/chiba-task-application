@@ -6,7 +6,7 @@ import { getTodayEvents } from "@/lib/google-calendar";
 export async function GET() {
   const accessToken = await getAccessTokenFromSession();
   if (!accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ events: [] });
   }
 
   const events = await getTodayEvents(accessToken);

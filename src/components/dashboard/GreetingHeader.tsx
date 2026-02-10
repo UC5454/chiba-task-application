@@ -18,14 +18,18 @@ function getDateString(): string {
 }
 
 export function GreetingHeader() {
-  const { tasks } = useTasks("today");
-  const { events } = useCalendar();
+  const { tasks, isLoading: tasksLoading, error: tasksError } = useTasks("today");
+  const { events, isLoading: eventsLoading, error: eventsError } = useCalendar();
+
+  const hasError = Boolean(tasksError || eventsError);
+  const taskCount = tasksLoading && !hasError ? "..." : `${tasks.length}`;
+  const eventCount = eventsLoading && !hasError ? "..." : `${events.length}`;
 
   return (
     <div className="animate-fade-in-up">
       <h1 className="text-2xl font-bold text-[var(--color-foreground)]">{getGreeting()}</h1>
       <p className="mt-1 text-sm text-[var(--color-muted)]">
-        {getDateString()} ・ タスク{tasks.length}件 ・ 予定{events.length}件
+        {getDateString()} ・ タスク{taskCount}件 ・ 予定{eventCount}件
       </p>
     </div>
   );

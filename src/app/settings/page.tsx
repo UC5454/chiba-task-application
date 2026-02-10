@@ -20,6 +20,9 @@ const urlBase64ToUint8Array = (base64String: string) => {
 const defaultSettings: ADHDSettings = {
   maxDailyTasks: 5,
   focusDuration: 25,
+  overfocusAlert: 120,
+  breakDuration: 5,
+  slackNotifyEnabled: true,
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00",
   gentleRemind: true,
@@ -33,10 +36,7 @@ export default function SettingsPage() {
   const current = settings ?? defaultSettings;
   const { toast } = useToast();
 
-  const [overfocusAlert, setOverfocusAlert] = useState(120);
-  const [breakDuration] = useState(5);
   const [webPush, setWebPush] = useState(true);
-  const [slackNotify, setSlackNotify] = useState(true);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   const saveSettings = async (patch: Partial<ADHDSettings>) => {
@@ -208,15 +208,19 @@ export default function SettingsPage() {
               <p className="text-[11px] text-[var(--color-muted)] mt-0.5">連続作業の上限時間</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => setOverfocusAlert(Math.max(60, overfocusAlert - 30))} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
-              <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{overfocusAlert}分</span>
-              <button onClick={() => setOverfocusAlert(Math.min(240, overfocusAlert + 30))} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
+              <button onClick={() => saveSettings({ overfocusAlert: Math.max(60, current.overfocusAlert - 30) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
+              <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{current.overfocusAlert}分</span>
+              <button onClick={() => saveSettings({ overfocusAlert: Math.min(240, current.overfocusAlert + 30) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
             </div>
           </div>
 
           <div className="flex items-center justify-between px-4 py-3.5">
             <p className="text-sm font-medium text-[var(--color-foreground)]">休憩時間</p>
-            <span className="text-sm font-bold text-[var(--color-primary)]">{breakDuration}分</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => saveSettings({ breakDuration: Math.max(3, current.breakDuration - 1) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
+              <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{current.breakDuration}分</span>
+              <button onClick={() => saveSettings({ breakDuration: Math.min(20, current.breakDuration + 1) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
+            </div>
           </div>
         </div>
       </section>
@@ -228,7 +232,7 @@ export default function SettingsPage() {
         </div>
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] divide-y divide-[var(--color-border-light)]">
           <ToggleRow label="Web Push通知" description="ブラウザのプッシュ通知" enabled={webPush} onChange={toggleWebPush} />
-          <ToggleRow label="Slack通知" description="Slackチャンネルにも通知" enabled={slackNotify} onChange={setSlackNotify} />
+          <ToggleRow label="Slack通知" description="Slackチャンネルにも通知" enabled={current.slackNotifyEnabled} onChange={(value) => saveSettings({ slackNotifyEnabled: value })} />
           <div className="flex items-center justify-between px-4 py-3.5">
             <div>
               <p className="text-sm font-medium text-[var(--color-foreground)]">静寂時間</p>

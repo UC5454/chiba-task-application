@@ -5,10 +5,40 @@ import { Flame, Star, Trophy } from "lucide-react";
 import { useGamification } from "@/hooks/useGamification";
 
 export function StreakCard() {
-  const { gamification } = useGamification();
+  const { gamification, isLoading } = useGamification();
 
   const streak = gamification?.currentStreak ?? 0;
   const totalCompleted = gamification?.totalCompleted ?? 0;
+
+  if (isLoading) {
+    return (
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
+        <div className="animate-pulse bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-4 w-20 rounded bg-[var(--color-border-light)]" />
+            <div className="h-6 w-20 rounded-full bg-[var(--color-border-light)]" />
+          </div>
+          <div className="flex items-end gap-6">
+            <div>
+              <div className="h-10 w-12 rounded bg-[var(--color-border-light)]" />
+              <div className="h-3 w-10 rounded bg-[var(--color-border-light)] mt-2" />
+            </div>
+            <div className="flex-1 flex gap-4">
+              <div className="h-6 w-16 rounded bg-[var(--color-border-light)]" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[var(--color-border-light)]">
+            {Array.from({ length: 7 }).map((_, idx) => (
+              <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-6 h-6 rounded-full bg-[var(--color-border-light)]" />
+                <div className="h-2 w-4 rounded bg-[var(--color-border-light)]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>

@@ -1,7 +1,8 @@
 "use client";
 
 import { Plus, Search, StickyNote, Tag } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { useNotes } from "@/hooks/useNotes";
 
@@ -18,7 +19,8 @@ function formatDate(iso: string): string {
   return `${days}日前`;
 }
 
-export default function NotesPage() {
+function NotesContent() {
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showNewMemo, setShowNewMemo] = useState(false);
@@ -26,6 +28,12 @@ export default function NotesPage() {
 
   const { notes, mutate } = useNotes(selectedTag, searchQuery);
   const allTags = useMemo(() => Array.from(new Set(notes.flatMap((m) => m.tags))), [notes]);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setShowNewMemo(true);
+    }
+  }, [searchParams]);
 
   const handleSave = async () => {
     if (!newMemoText.trim()) return;
@@ -105,5 +113,13 @@ export default function NotesPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function NotesPage() {
+  return (
+    <Suspense fallback={<div className="max-w-2xl mx-auto px-4 py-6"><div className="h-8 w-32 bg-[var(--color-surface-hover)] rounded animate-pulse" /></div>}>
+      <NotesContent />
+    </Suspense>
   );
 }

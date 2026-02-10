@@ -10,6 +10,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  if (!process.env.NOTION_API_KEY) {
+    return NextResponse.json({ notes: [] });
+  }
+
   const url = new URL(request.url);
   const tag = url.searchParams.get("tag") ?? undefined;
   const search = url.searchParams.get("search") ?? undefined;
@@ -23,6 +27,10 @@ export async function POST(request: Request) {
   const session = await getAuthSession();
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!process.env.NOTION_API_KEY) {
+    return NextResponse.json({ error: "Notion APIが設定されていません" }, { status: 503 });
   }
 
   const body = (await request.json()) as MemoCreateInput & { relatedTaskTitle?: string };

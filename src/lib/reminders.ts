@@ -9,6 +9,9 @@ const defaultSettings: ADHDSettings = {
   celebrationEnabled: true,
   autoReleaseEnabled: true,
   autoReleaseDays: 14,
+  overfocusAlert: 120,
+  breakDuration: 5,
+  slackNotifyEnabled: true,
 };
 
 const actions: ReminderAction[] = [

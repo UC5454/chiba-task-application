@@ -27,10 +27,42 @@ const getInitial = (name: string): string => name.charAt(0);
 
 export function TeamStatus() {
   const [expanded, setExpanded] = useState(false);
-  const { team } = useTeamStatus();
+  const { team, isLoading, error } = useTeamStatus();
 
   const displayTeam = expanded ? team : team.slice(0, 4);
   const activeCount = team.filter((m) => m.currentTask && !m.currentTask.includes("待機")).length;
+
+  if (isLoading) {
+    return (
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
+            <Users size={16} className="text-[var(--color-primary)]" />
+            AI社員の動き
+          </h2>
+        </div>
+        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+          <p className="text-sm text-[var(--color-muted)]">読み込み中...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
+            <Users size={16} className="text-[var(--color-primary)]" />
+            AI社員の動き
+          </h2>
+        </div>
+        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+          <p className="text-sm text-[var(--color-muted)]">AI社員ステータスを取得できませんでした</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
@@ -46,7 +78,7 @@ export function TeamStatus() {
         {team.length === 0 && (
           <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
             <p className="text-3xl mb-2">🤝</p>
-            <p className="text-sm text-[var(--color-muted)]">AI社員ステータスを読み込み中です</p>
+            <p className="text-sm text-[var(--color-muted)]">AI社員ステータスがありません</p>
           </div>
         )}
 
