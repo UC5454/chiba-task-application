@@ -49,9 +49,13 @@ export function InputDialog({
   );
 
   const [values, setValues] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setSubmitting(false);
+      return;
+    }
     const nextValues: Record<string, string> = {};
     effectiveFields.forEach((field) => {
       nextValues[field.name] = field.defaultValue ?? "";
@@ -61,7 +65,13 @@ export function InputDialog({
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    await onSubmit(values);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await onSubmit(values);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -104,15 +114,17 @@ export function InputDialog({
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] bg-[var(--color-surface-hover)] text-[var(--color-muted)] hover:bg-[var(--color-border-light)] transition-colors"
+                disabled={submitting}
+                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] bg-[var(--color-surface-hover)] text-[var(--color-muted)] hover:bg-[var(--color-border-light)] transition-colors btn-press"
               >
                 キャンセル
               </button>
               <button
                 type="submit"
-                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors"
+                disabled={submitting}
+                className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-dark)] transition-colors btn-press"
               >
-                保存
+                {submitting ? "保存中..." : "保存"}
               </button>
             </div>
           </form>

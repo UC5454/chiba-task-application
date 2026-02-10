@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, Bell, Brain, Timer } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useSettings } from "@/hooks/useSettings";
 import type { ADHDSettings } from "@/types";
@@ -33,14 +33,25 @@ const defaultSettings: ADHDSettings = {
 
 export default function SettingsPage() {
   const { settings, mutate } = useSettings();
-  const current = settings ?? defaultSettings;
   const { toast } = useToast();
+
+  // ローカルステートで即時UI反映。SWRデータが届いたら同期
+  const [local, setLocal] = useState<ADHDSettings>(defaultSettings);
+  const localRef = useRef(local);
+  localRef.current = local;
+
+  useEffect(() => {
+    if (settings) setLocal(settings);
+  }, [settings]);
+
+  const current = local;
 
   const [webPush, setWebPush] = useState(true);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const saveSettings = async (patch: Partial<ADHDSettings>) => {
-    const payload = { ...current, ...patch };
+  const flushSave = useCallback(async () => {
+    const payload = localRef.current;
     setSaveState("saving");
     try {
       const response = await fetch("/api/settings", {
@@ -65,7 +76,23 @@ export default function SettingsPage() {
       setSaveState("idle");
       toast.error("設定を保存できなかった。もう一度試してみてね。");
     }
-  };
+  }, [mutate, toast]);
+
+  const saveSettings = useCallback((patch: Partial<ADHDSettings>) => {
+    setLocal((prev) => ({ ...prev, ...patch }));
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { flushSave(); }, 800);
+  }, [flushSave]);
+
+  // アンマウント時にペンディングの保存をフラッシュ
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        flushSave();
+      }
+    };
+  }, [flushSave]);
 
   const subscribePush = async () => {
     if (!("serviceWorker" in navigator)) {

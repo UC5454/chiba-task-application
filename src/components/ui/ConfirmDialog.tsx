@@ -1,10 +1,11 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
+import { useState } from "react";
 
 type ConfirmDialogProps = {
   open: boolean;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
   title: string;
   description?: string;
@@ -21,6 +22,18 @@ export function ConfirmDialog({
   confirmLabel = "OK",
   variant = "default",
 }: ConfirmDialogProps) {
+  const [confirming, setConfirming] = useState(false);
+
+  const handleConfirm = async () => {
+    if (confirming) return;
+    setConfirming(true);
+    try {
+      await onConfirm();
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   const confirmClass =
     variant === "danger"
       ? "bg-[var(--color-priority-high)] text-white hover:opacity-90"
@@ -39,15 +52,17 @@ export function ConfirmDialog({
           <div className="flex justify-end gap-2 mt-5">
             <button
               onClick={onCancel}
-              className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] bg-[var(--color-surface-hover)] text-[var(--color-muted)] hover:bg-[var(--color-border-light)] transition-colors"
+              disabled={confirming}
+              className="px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] bg-[var(--color-surface-hover)] text-[var(--color-muted)] hover:bg-[var(--color-border-light)] transition-colors btn-press"
             >
               キャンセル
             </button>
             <button
-              onClick={onConfirm}
-              className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] transition-colors ${confirmClass}`}
+              onClick={handleConfirm}
+              disabled={confirming}
+              className={`px-3 py-1.5 text-xs font-medium rounded-[var(--radius-md)] transition-colors btn-press ${confirmClass}`}
             >
-              {confirmLabel}
+              {confirming ? "処理中..." : confirmLabel}
             </button>
           </div>
         </Dialog.Content>

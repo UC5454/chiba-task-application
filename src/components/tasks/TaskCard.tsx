@@ -57,6 +57,11 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
 
   const handleComplete = async (e: MouseEvent) => {
     e.stopPropagation();
+    if (completed) return;
+    // 楽観的更新: 即座にUIを更新
+    setCompleted(true);
+    confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+    toast.success("完了したよ！");
     try {
       const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/complete`, { method: "POST" });
       if (!response.ok) {
@@ -67,12 +72,10 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? "操作に失敗しました");
       }
-      setCompleted(true);
-      confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
-      toast.success("完了したよ！");
       await onChanged?.();
     } catch (error) {
       console.error(error);
+      setCompleted(false);
       toast.error("完了できなかった。もう一度試してみてね。");
     }
   };
