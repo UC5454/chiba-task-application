@@ -1,9 +1,12 @@
 "use client";
 
 import confetti from "canvas-confetti";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import { Check, ChevronDown, ChevronUp, Clock, Pencil, Trash2 } from "lucide-react";
 import type { Task, Priority } from "@/types";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { InputDialog } from "@/components/ui/InputDialog";
+import { useToast } from "@/components/ui/ToastProvider";
 
 const priorityColors: Record<Priority, string> = {
   1: "bg-[var(--color-priority-high)]",
@@ -48,45 +51,78 @@ interface TaskCardProps {
 export function TaskCard({ task, onChanged }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [completed, setCompleted] = useState(task.completed);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const { toast } = useToast();
 
-  const handleComplete = async (e: React.MouseEvent) => {
+  const handleComplete = async (e: MouseEvent) => {
     e.stopPropagation();
-    await fetch(`/api/tasks/${encodeURIComponent(task.id)}/complete`, { method: "POST" });
-    setCompleted(true);
-    confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
-    await onChanged?.();
+    try {
+      const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/complete`, { method: "POST" });
+      if (!response.ok) throw new Error("complete failed");
+      setCompleted(true);
+      confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+      toast.success("完了したよ！");
+      await onChanged?.();
+    } catch (error) {
+      console.error(error);
+      toast.error("完了できなかった。もう一度試してみてね。");
+    }
   };
 
-  const handleEdit = async (e: React.MouseEvent) => {
+  const handleEdit = (e: MouseEvent) => {
     e.stopPropagation();
-
-    const title = window.prompt("タスク名を編集", task.title);
-    if (!title?.trim()) return;
-
-    const notes = window.prompt("メモを編集（任意）", task.notes ?? "");
-
-    await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: title.trim(), notes: notes ?? undefined }),
-    });
-
-    await onChanged?.();
+    setEditOpen(true);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDelete = (e: MouseEvent) => {
     e.stopPropagation();
-    if (!window.confirm(`「${task.title}」を削除しますか？`)) return;
-    await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
-    await onChanged?.();
+    setDeleteOpen(true);
+  };
+
+  const submitEdit = async (values: Record<string, string>) => {
+    const title = values.title?.trim();
+    if (!title) {
+      toast.error("タスク名を入力してね。");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, notes: values.notes?.trim() || undefined }),
+      });
+      if (!response.ok) throw new Error("update failed");
+      toast.success("更新したよ。");
+      setEditOpen(false);
+      await onChanged?.();
+    } catch (error) {
+      console.error(error);
+      toast.error("更新できなかった。もう一度試してみてね。");
+    }
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("delete failed");
+      toast.success("削除したよ。");
+      setDeleteOpen(false);
+      await onChanged?.();
+    } catch (error) {
+      console.error(error);
+      toast.error("削除できなかった。もう一度試してみてね。");
+    }
   };
 
   return (
-    <div
-      className={`bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden transition-all hover:shadow-[var(--shadow-md)] ${
-        completed ? "opacity-50" : ""
-      }`}
-    >
+    <>
+      <div
+        className={`bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden transition-all hover:shadow-[var(--shadow-md)] ${
+          completed ? "opacity-50" : ""
+        }`}
+      >
       <div
         className="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-[var(--color-surface-hover)]"
         onClick={() => setExpanded(!expanded)}
@@ -158,6 +194,28 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      <InputDialog
+        open={editOpen}
+        onCancel={() => setEditOpen(false)}
+        onSubmit={submitEdit}
+        title="タスクを編集"
+        fields={[
+          { name: "title", label: "タスク名", defaultValue: task.title, placeholder: "タスク名", required: true },
+          { name: "notes", label: "メモ", defaultValue: task.notes ?? "", placeholder: "メモ（任意）", multiline: true },
+        ]}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={confirmDelete}
+        title="タスクを削除しますか？"
+        description={`「${task.title}」を削除します。あとで戻せません。`}
+        confirmLabel="削除する"
+        variant="danger"
+      />
+    </>
   );
 }

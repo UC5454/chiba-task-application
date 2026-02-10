@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { useSettings } from "@/hooks/useSettings";
 import type { ADHDSettings } from "@/types";
+import { useToast } from "@/components/ui/ToastProvider";
 
 
 
@@ -30,6 +31,7 @@ const defaultSettings: ADHDSettings = {
 export default function SettingsPage() {
   const { settings, mutate } = useSettings();
   const current = settings ?? defaultSettings;
+  const { toast } = useToast();
 
   const [overfocusAlert, setOverfocusAlert] = useState(120);
   const [breakDuration] = useState(5);
@@ -40,56 +42,89 @@ export default function SettingsPage() {
   const saveSettings = async (patch: Partial<ADHDSettings>) => {
     const payload = { ...current, ...patch };
     setSaveState("saving");
-    await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    await mutate();
-    setSaveState("saved");
-    setTimeout(() => setSaveState("idle"), 1200);
+    try {
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error("save failed");
+      await mutate();
+      setSaveState("saved");
+      toast.success("設定を保存したよ。");
+      setTimeout(() => setSaveState("idle"), 1200);
+    } catch (error) {
+      console.error(error);
+      setSaveState("idle");
+      toast.error("設定を保存できなかった。もう一度試してみてね。");
+    }
   };
 
   const subscribePush = async () => {
-    if (!("serviceWorker" in navigator)) return false;
+    if (!("serviceWorker" in navigator)) {
+      toast.error("このブラウザではプッシュ通知が使えません。");
+      return false;
+    }
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidPublicKey) return false;
+    if (!vapidPublicKey) {
+      toast.error("プッシュ通知の設定が見つかりません。");
+      return false;
+    }
 
-    const registration = await navigator.serviceWorker.ready;
-    const existing = await registration.pushManager.getSubscription();
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
 
-    const subscription =
-      existing ??
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-      }));
+      const subscription =
+        existing ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        }));
 
-    await fetch("/api/push/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subscription),
-    });
+      const response = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subscription),
+      });
+      if (!response.ok) throw new Error("subscribe failed");
 
-    return true;
+      toast.success("プッシュ通知を有効にしたよ。");
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast.error("プッシュ通知を有効にできなかった。");
+      return false;
+    }
   };
 
   const unsubscribePush = async () => {
-    if (!("serviceWorker" in navigator)) return false;
+    if (!("serviceWorker" in navigator)) {
+      toast.error("このブラウザではプッシュ通知が使えません。");
+      return false;
+    }
 
-    const registration = await navigator.serviceWorker.ready;
-    const existing = await registration.pushManager.getSubscription();
-    if (!existing) return true;
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      if (!existing) return true;
 
-    await fetch("/api/push/unsubscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoint: existing.endpoint }),
-    });
+      const response = await fetch("/api/push/unsubscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: existing.endpoint }),
+      });
+      if (!response.ok) throw new Error("unsubscribe failed");
 
-    await existing.unsubscribe();
-    return true;
+      await existing.unsubscribe();
+      toast.success("プッシュ通知をオフにしたよ。");
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast.error("プッシュ通知をオフにできなかった。");
+      return false;
+    }
   };
 
   const toggleWebPush = async (enabled: boolean) => {

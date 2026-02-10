@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { Home, Target, Plus, StickyNote, Settings } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { mutate } from "swr";
 
 import { useGamification } from "@/hooks/useGamification";
+import { InputDialog } from "@/components/ui/InputDialog";
+import { useToast } from "@/components/ui/ToastProvider";
 
 const navItems = [
   { href: "/", icon: Home, label: "ホーム" },
@@ -16,11 +20,35 @@ const navItems = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { gamification } = useGamification();
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleQuickAdd = () => {
-    router.push("/tasks?quickAdd=1");
+    setQuickAddOpen(true);
+  };
+
+  const submitQuickAdd = async (values: Record<string, string>) => {
+    const title = values.title?.trim();
+    if (!title) {
+      toast.error("タスク名を入力してね。");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) throw new Error("create failed");
+      toast.success("タスクを追加したよ。");
+      setQuickAddOpen(false);
+      await mutate((key) => typeof key === "string" && key.startsWith("/api/tasks"));
+    } catch (error) {
+      console.error(error);
+      toast.error("追加できなかった。もう一度試してみてね。");
+    }
   };
 
   return (
@@ -111,6 +139,14 @@ export function BottomNav() {
           <p className="text-xs text-[var(--color-muted)]">最高 {gamification?.longestStreak ?? 0}日 / 累計 {gamification?.totalCompleted ?? 0}件</p>
         </div>
       </aside>
+
+      <InputDialog
+        open={quickAddOpen}
+        onCancel={() => setQuickAddOpen(false)}
+        onSubmit={submitQuickAdd}
+        title="タスクを追加"
+        fields={[{ name: "title", label: "タスク名", placeholder: "タスク名を入力", required: true }]}
+      />
     </>
   );
 }
