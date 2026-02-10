@@ -4,10 +4,10 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
 
   if (!token) {
-    // API routes: return 401 JSON instead of redirecting to signin page
-    if (request.nextUrl.pathname.startsWith("/api/")) {
+    if (isApiRoute) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -16,7 +16,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  response.headers.set("x-middleware-v", "2");
+  return response;
 }
 
 export const config = {
