@@ -138,3 +138,31 @@ export const getTeamStatus = async (): Promise<AIEmployee[]> => {
 
   return team;
 };
+
+export const getEmployeeDetail = async (employeeId: string, date?: string) => {
+  const employee = EMPLOYEES.find((e) => e.id === employeeId);
+  if (!employee) return null;
+
+  const targetDate = date ?? new Date().toISOString().slice(0, 10);
+
+  const [currentTaskMd, inboxMd, dailyLogContent, availableDates] = await Promise.all([
+    fetchRepoFile(`${employee.path}/CurrentTask.md`),
+    fetchRepoFile(`${employee.path}/INBOX.md`),
+    fetchRepoFile(`${employee.path}/daily-logs/${targetDate}.md`),
+    getDailyLogDates(employee.path),
+  ]);
+
+  return {
+    employee: {
+      name: employee.name,
+      id: employee.id,
+      team: employee.team,
+      role: employee.role,
+      avatarUrl: employee.avatarUrl,
+    },
+    currentTask: parseCurrentTask(currentTaskMd),
+    inboxCount: countInbox(inboxMd),
+    dailyLog: dailyLogContent || null,
+    availableDates,
+  };
+};
