@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Users } from "lucide-react";
 import { useState } from "react";
 
+import { EmployeeDetailDrawer } from "@/components/dashboard/EmployeeDetailDrawer";
 import { useTeamStatus } from "@/hooks/useTeamStatus";
 
 const teamLabels: Record<string, string> = {
@@ -27,6 +28,7 @@ const getInitial = (name: string): string => name.charAt(0);
 
 export function TeamStatus() {
   const [expanded, setExpanded] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const { team, isLoading, error } = useTeamStatus();
 
   const displayTeam = expanded ? team : team.slice(0, 4);
@@ -83,7 +85,11 @@ export function TeamStatus() {
         )}
 
         {displayTeam.map((member) => (
-          <div key={member.id} className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+          <div
+            key={member.id}
+            className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] cursor-pointer active:bg-[var(--color-surface-hover)] transition-colors"
+            onClick={() => setSelectedEmployeeId(member.id)}
+          >
             <div className="relative shrink-0">
               <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-xs font-bold text-[var(--color-primary)]">
                 {getInitial(member.name)}
@@ -109,6 +115,8 @@ export function TeamStatus() {
           {expanded ? <><span>折りたたむ</span><ChevronUp size={14} /></> : <><span>全{team.length}名を表示</span><ChevronDown size={14} /></>}
         </button>
       )}
+
+      <EmployeeDetailDrawer open={!!selectedEmployeeId} employeeId={selectedEmployeeId} onClose={() => setSelectedEmployeeId(null)} />
     </section>
   );
 }
