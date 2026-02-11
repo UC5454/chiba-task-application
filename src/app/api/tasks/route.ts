@@ -42,7 +42,13 @@ const filterTasks = (tasks: Task[], filter: string | null) => {
   }
 
   if (filter === "completed") {
-    return tasks.filter((task) => task.completed);
+    return tasks
+      .filter((task) => task.completed)
+      .sort((a, b) => {
+        const dateA = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+        const dateB = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+        return dateB - dateA;
+      });
   }
 
   if (filter === "today") {
@@ -94,7 +100,28 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ tasks: filterTasks(merged, filter) });
+    const filtered = filterTasks(merged, filter);
+
+    if (filter === "completed") {
+      const now = new Date();
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+      const todayCount = filtered.filter(
+        (t) => t.completedAt && new Date(t.completedAt).getTime() >= todayStart.getTime(),
+      ).length;
+      const weekStart = new Date(now);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      const thisWeekCount = filtered.filter(
+        (t) => t.completedAt && new Date(t.completedAt).getTime() >= weekStart.getTime(),
+      ).length;
+      return NextResponse.json({
+        tasks: filtered,
+        completionStats: { todayCount, thisWeekCount, totalCount: filtered.length },
+      });
+    }
+
+    return NextResponse.json({ tasks: filtered });
   } catch (err) {
     console.error("Tasks GET error:", err);
     return NextResponse.json({ error: "タスクの取得に失敗しました" }, { status: 500 });
