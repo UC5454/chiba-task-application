@@ -1,6 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
+import { getSupabaseAdminClient } from "@/lib/supabase";
 
 const GOOGLE_SCOPES = [
   "openid",
@@ -67,6 +68,18 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, account }) {
       if (account) {
+        // ログイン時にrefresh tokenをSupabaseに保存（Cron用）
+        if (account.refresh_token) {
+          try {
+            const supabase = getSupabaseAdminClient();
+            await supabase.from("oauth_tokens").upsert(
+              { id: "google", refresh_token: account.refresh_token, updated_at: new Date().toISOString() },
+              { onConflict: "id" },
+            );
+          } catch {
+            // Supabase unavailable — continue without persisting
+          }
+        }
         return {
           ...token,
           accessToken: account.access_token,

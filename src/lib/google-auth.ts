@@ -1,9 +1,29 @@
+import { getSupabaseAdminClient } from "@/lib/supabase";
+
 /**
  * Google OAuth refresh token helper for server-side / cron contexts.
  * Used when there's no user session (e.g., Vercel Cron jobs).
+ *
+ * Token resolution order:
+ * 1. Supabase oauth_tokens table (auto-updated on user login)
+ * 2. GOOGLE_REFRESH_TOKEN env var (fallback)
  */
+async function getRefreshToken(): Promise<string | null> {
+  // 1. Supabase (ログイン時に自動保存されたトークン)
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data } = await supabase.from("oauth_tokens").select("refresh_token").eq("id", "google").maybeSingle();
+    if (data?.refresh_token) return data.refresh_token as string;
+  } catch {
+    // Supabase unavailable
+  }
+
+  // 2. Env var fallback
+  return process.env.GOOGLE_REFRESH_TOKEN ?? null;
+}
+
 export async function getAccessTokenFromRefreshToken(): Promise<string | null> {
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+  const refreshToken = await getRefreshToken();
   if (!refreshToken) return null;
 
   const response = await fetch("https://oauth2.googleapis.com/token", {
