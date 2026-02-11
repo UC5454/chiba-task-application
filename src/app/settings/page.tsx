@@ -286,7 +286,21 @@ export default function SettingsPage() {
               <p className="text-sm font-medium text-[var(--color-foreground)]">静寂時間</p>
               <p className="text-[11px] text-[var(--color-muted)] mt-0.5">この時間帯は通知しません</p>
             </div>
-            <span className="text-sm font-medium text-[var(--color-primary)]">{current.quietHoursStart} - {current.quietHoursEnd}</span>
+            <div className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)]">
+              <input
+                type="time"
+                value={current.quietHoursStart}
+                onChange={(e) => saveSettings({ quietHoursStart: e.target.value })}
+                className="bg-[var(--color-surface-hover)] rounded-[var(--radius-md)] px-2 py-1 text-sm text-[var(--color-primary)] border-none outline-none"
+              />
+              <span className="text-[var(--color-muted)]">-</span>
+              <input
+                type="time"
+                value={current.quietHoursEnd}
+                onChange={(e) => saveSettings({ quietHoursEnd: e.target.value })}
+                className="bg-[var(--color-surface-hover)] rounded-[var(--radius-md)] px-2 py-1 text-sm text-[var(--color-primary)] border-none outline-none"
+              />
+            </div>
           </div>
         </div>
       </section>
