@@ -14,7 +14,7 @@ type FilterType = "today" | "all" | "completed";
 export default function TasksPage() {
   const [filter, setFilter] = useState<FilterType>("today");
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const { tasks, mutate } = useTasks(filter);
+  const { tasks, completionStats, mutate } = useTasks(filter);
   const { toast } = useToast();
 
   const overdueTasks = tasks.filter((task) => !task.completed && (task.overduedays ?? 0) > 0);
@@ -63,6 +63,25 @@ export default function TasksPage() {
       </div>
 
       <TaskFilter current={filter} onChange={setFilter} />
+
+      {filter === "completed" && completionStats && (
+        <div className="flex items-center gap-4 px-4 py-3 bg-gradient-to-r from-[var(--color-success)]/10 to-[var(--color-primary)]/10 rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+          <div className="text-center flex-1">
+            <p className="text-lg font-bold text-[var(--color-success)]">{completionStats.todayCount}</p>
+            <p className="text-[10px] text-[var(--color-muted)]">今日</p>
+          </div>
+          <div className="w-px h-8 bg-[var(--color-border)]" />
+          <div className="text-center flex-1">
+            <p className="text-lg font-bold text-[var(--color-primary)]">{completionStats.thisWeekCount}</p>
+            <p className="text-[10px] text-[var(--color-muted)]">今週</p>
+          </div>
+          <div className="w-px h-8 bg-[var(--color-border)]" />
+          <div className="text-center flex-1">
+            <p className="text-lg font-bold text-[var(--color-foreground)]">{completionStats.totalCount}</p>
+            <p className="text-[10px] text-[var(--color-muted)]">累計</p>
+          </div>
+        </div>
+      )}
 
       {filter !== "completed" && overdueTasks.length > 0 && <OverdueSection tasks={overdueTasks} onChanged={mutate} />}
 

@@ -43,6 +43,19 @@ function formatDueDate(dueDate?: string): string {
   return `${diffDays}日後`;
 }
 
+function formatCompletedAt(completedAt: string): string {
+  const date = new Date(completedAt);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const completed = new Date(date);
+  completed.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((now.getTime() - completed.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "今日完了";
+  if (diffDays === 1) return "昨日完了";
+  if (diffDays < 7) return `${diffDays}日前に完了`;
+  return `${date.getMonth() + 1}/${date.getDate()} 完了`;
+}
+
 interface TaskCardProps {
   task: Task;
   onChanged?: () => Promise<unknown> | unknown;
@@ -179,6 +192,12 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
               <span className={`flex items-center gap-1 text-[10px] ${(task.overduedays ?? 0) > 0 ? "text-[var(--color-priority-high)] font-semibold" : "text-[var(--color-muted)]"}`}>
                 <Clock size={10} />
                 {formatDueDate(task.dueDate)}
+              </span>
+            )}
+            {task.completed && task.completedAt && (
+              <span className="flex items-center gap-1 text-[10px] text-[var(--color-success)]">
+                <Check size={10} />
+                {formatCompletedAt(task.completedAt)}
               </span>
             )}
           </div>
