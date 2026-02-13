@@ -97,8 +97,7 @@ export const createMemo = async (content: string, tags: string[] = [], relatedTa
 };
 
 export const listMemos = async (tag?: string, search?: string): Promise<Memo[]> => {
-  const deps = ensureMemoDependencies();
-  if (!deps) {
+  if (!notionToken || !memoDatabaseId) {
     return [];
   }
 
@@ -112,33 +111,35 @@ export const listMemos = async (tag?: string, search?: string): Promise<Memo[]> 
     filters.push({ property: "Content", title: { contains: search } });
   }
 
-  const notionAny = deps.notion as unknown as {
-    databases?: { query?: (args: Record<string, unknown>) => Promise<{ results: unknown[] }> };
-    dataSources?: { query?: (args: Record<string, unknown>) => Promise<{ results: unknown[] }> };
+  const body: Record<string, unknown> = {
+    sorts: [{ timestamp: "created_time", direction: "descending" }],
+    page_size: 100,
   };
 
-  const queryDatabase = notionAny.databases?.query;
-  const queryDataSource = notionAny.dataSources?.query;
+  if (filters.length === 1) {
+    body.filter = filters[0];
+  } else if (filters.length > 1) {
+    body.filter = { and: filters };
+  }
 
-  if (!queryDatabase && !queryDataSource) {
+  const res = await fetch(`https://api.notion.com/v1/databases/${memoDatabaseId}/query`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${notionToken}`,
+      "Notion-Version": "2022-06-28",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    console.error("Notion listMemos failed:", res.status, await res.text().catch(() => ""));
     return [];
   }
 
-  const response = await (queryDatabase
-    ? queryDatabase({
-    database_id: deps.memoDatabaseId,
-    filter: filters.length === 0 ? undefined : filters.length === 1 ? filters[0] : { and: filters },
-    sorts: [{ timestamp: "created_time", direction: "descending" }],
-    page_size: 100,
-      })
-    : queryDataSource!({
-        data_source_id: deps.memoDatabaseId,
-        filter: filters.length === 0 ? undefined : filters.length === 1 ? filters[0] : { and: filters },
-        sorts: [{ timestamp: "created_time", direction: "descending" }],
-        page_size: 100,
-      }));
+  const data = (await res.json()) as { results: unknown[] };
 
-  return response.results
+  return data.results
     .filter((result: unknown): result is { id: string; created_time: string; properties: Record<string, unknown> } =>
       Boolean(result && typeof result === "object" && "properties" in result),
     )
