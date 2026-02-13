@@ -8,7 +8,7 @@ type InputField = {
   label?: string;
   placeholder?: string;
   defaultValue?: string;
-  type?: "text" | "email" | "number";
+  type?: "text" | "email" | "number" | "date";
   required?: boolean;
   multiline?: boolean;
 };

@@ -37,7 +37,7 @@ export function QuickActions() {
       const response = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({ title, dueDate: values.dueDate || undefined }),
       });
       if (!response.ok) {
         const ct = response.headers.get("content-type") ?? "";
@@ -95,7 +95,10 @@ export function QuickActions() {
         onCancel={() => setQuickTaskOpen(false)}
         onSubmit={submitQuickTask}
         title="タスクを追加"
-        fields={[{ name: "title", label: "タスク名", placeholder: "タスク名を入力", required: true }]}
+        fields={[
+          { name: "title", label: "タスク名", placeholder: "タスク名を入力", required: true },
+          { name: "dueDate", label: "期限", type: "date" as const },
+        ]}
       />
     </>
   );
