@@ -53,9 +53,9 @@ const filterTasks = (tasks: Task[], filter: string | null) => {
 
   if (filter === "today") {
     return tasks.filter((task) => {
-      if (!task.dueDate) {
-        return !task.completed;
-      }
+      if (task.completed) return false;
+
+      if (!task.dueDate) return true;
 
       return isTodayDate(new Date(task.dueDate));
     });

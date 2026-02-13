@@ -26,6 +26,9 @@ function NotesContent() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [showNewMemo, setShowNewMemo] = useState(false);
   const [newMemoText, setNewMemoText] = useState("");
+  const [newMemoTags, setNewMemoTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [showTagInput, setShowTagInput] = useState(false);
   const { toast } = useToast();
 
   const { notes, mutate } = useNotes(selectedTag, searchQuery);
@@ -37,6 +40,19 @@ function NotesContent() {
     }
   }, [searchParams]);
 
+  const addTag = () => {
+    const tag = tagInput.trim().replace(/^#/, "");
+    if (tag && !newMemoTags.includes(tag)) {
+      setNewMemoTags([...newMemoTags, tag]);
+    }
+    setTagInput("");
+    setShowTagInput(false);
+  };
+
+  const removeTag = (tag: string) => {
+    setNewMemoTags(newMemoTags.filter((t) => t !== tag));
+  };
+
   const handleSave = async () => {
     if (!newMemoText.trim()) return;
 
@@ -44,7 +60,7 @@ function NotesContent() {
       const response = await fetch("/api/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newMemoText.trim(), tags: selectedTag ? [selectedTag] : [] }),
+        body: JSON.stringify({ content: newMemoText.trim(), tags: newMemoTags }),
       });
       if (!response.ok) {
         const ct = response.headers.get("content-type") ?? "";
@@ -56,6 +72,7 @@ function NotesContent() {
       }
 
       setNewMemoText("");
+      setNewMemoTags([]);
       setShowNewMemo(false);
       await mutate();
       toast.success("メモを保存したよ。");
@@ -81,15 +98,28 @@ function NotesContent() {
       {showNewMemo && (
         <div className="bg-[var(--color-memo)] rounded-[var(--radius-lg)] border border-[var(--color-streak)]/20 p-4 shadow-[var(--shadow-md)] animate-fade-in-up">
           <textarea value={newMemoText} onChange={(e) => setNewMemoText(e.target.value)} placeholder="思いついたことを書こう..." className="w-full h-28 bg-transparent text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted)] resize-none focus:outline-none leading-relaxed" autoFocus />
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--color-streak)]/10">
-            <div className="flex items-center gap-1.5">
-              <button className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[var(--color-muted)] bg-[var(--color-surface)] rounded-full border border-[var(--color-border)] hover:border-[var(--color-streak)] transition-colors">
-                <Tag size={10} />
-                タグ追加
-              </button>
+          <div className="mt-2 pt-2 border-t border-[var(--color-streak)]/10 space-y-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {newMemoTags.map((tag) => (
+                <button key={tag} onClick={() => removeTag(tag)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[var(--color-streak)] bg-[var(--color-streak)]/10 rounded-full hover:bg-[var(--color-streak)]/20 transition-colors">
+                  #{tag} ×
+                </button>
+              ))}
+              {showTagInput ? (
+                <form onSubmit={(e) => { e.preventDefault(); addTag(); }} className="flex items-center gap-1">
+                  <input type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)} placeholder="タグ名" className="w-20 px-2 py-1 text-[10px] bg-[var(--color-surface)] border border-[var(--color-streak)]/30 rounded-full focus:outline-none focus:border-[var(--color-streak)]" autoFocus />
+                  <button type="submit" className="text-[10px] font-medium text-[var(--color-streak)]">追加</button>
+                  <button type="button" onClick={() => { setShowTagInput(false); setTagInput(""); }} className="text-[10px] text-[var(--color-muted)]">×</button>
+                </form>
+              ) : (
+                <button onClick={() => setShowTagInput(true)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[var(--color-muted)] bg-[var(--color-surface)] rounded-full border border-[var(--color-border)] hover:border-[var(--color-streak)] transition-colors">
+                  <Tag size={10} />
+                  タグ追加
+                </button>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => { setShowNewMemo(false); setNewMemoText(""); }} className="text-xs text-[var(--color-muted)] hover:text-[var(--color-foreground)] transition-colors">キャンセル</button>
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={() => { setShowNewMemo(false); setNewMemoText(""); setNewMemoTags([]); }} className="text-xs text-[var(--color-muted)] hover:text-[var(--color-foreground)] transition-colors">キャンセル</button>
               <button onClick={handleSave} className="text-xs font-medium text-white bg-[var(--color-streak)] px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity">保存</button>
             </div>
           </div>
