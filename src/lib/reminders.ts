@@ -1,5 +1,9 @@
 import type { ADHDSettings, Reminder, ReminderAction, Task } from "@/types";
 
+// Vercel serverless runs in UTC. Quiet hours and reminder timing should be in JST.
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const toJST = (date: Date) => new Date(date.getTime() + JST_OFFSET_MS);
+
 const defaultSettings: ADHDSettings = {
   maxDailyTasks: 5,
   focusDuration: 25,
@@ -95,10 +99,11 @@ const reminderForTask = (task: Task, now: Date): Reminder | null => {
 
 export const generateReminders = (tasks: Task[], settings?: Partial<ADHDSettings>, now = new Date()): Reminder[] => {
   const mergedSettings = { ...defaultSettings, ...settings };
+  const jstNow = toJST(now);
 
-  if (inQuietHours(now, mergedSettings)) {
+  if (inQuietHours(jstNow, mergedSettings)) {
     return [];
   }
 
-  return tasks.map((task) => reminderForTask(task, now)).filter((item): item is Reminder => Boolean(item));
+  return tasks.map((task) => reminderForTask(task, jstNow)).filter((item): item is Reminder => Boolean(item));
 };
