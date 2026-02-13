@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Target, Plus, StickyNote, Settings } from "lucide-react";
+import { Home, CheckSquare, Plus, Target, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
@@ -12,9 +12,9 @@ import { useToast } from "@/components/ui/ToastProvider";
 
 const navItems = [
   { href: "/", icon: Home, label: "ホーム" },
-  { href: "/focus", icon: Target, label: "集中" },
+  { href: "/tasks", icon: CheckSquare, label: "タスク" },
   { href: "#add", icon: Plus, label: "追加", isCenter: true },
-  { href: "/notes", icon: StickyNote, label: "メモ" },
+  { href: "/focus", icon: Target, label: "集中" },
   { href: "/settings", icon: Settings, label: "設定" },
 ];
 

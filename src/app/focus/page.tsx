@@ -143,7 +143,7 @@ export default function FocusPage() {
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-5xl font-extrabold tracking-tight text-[var(--color-foreground)]">{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</span>
-            <span className={`text-xs font-medium mt-1 ${isBreak ? "text-[var(--color-success)]" : "text-[var(--color-primary)]"}`}>{isBreak ? "休憩中" : "集中中"}</span>
+            <span className={`text-xs font-medium mt-1 ${isBreak ? "text-[var(--color-success)]" : isRunning ? "text-[var(--color-primary)]" : "text-[var(--color-muted)]"}`}>{isBreak ? (isRunning ? "休憩中" : "休憩") : isRunning ? "集中中" : timeLeft === 0 ? "お疲れさま！" : "スタートしよう"}</span>
           </div>
         </div>
 
