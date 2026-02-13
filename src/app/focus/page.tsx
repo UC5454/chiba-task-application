@@ -8,8 +8,6 @@ import { useSettings } from "@/hooks/useSettings";
 import { useTasks } from "@/hooks/useTasks";
 import type { Subtask } from "@/types";
 
-const BREAK_MINUTES = 5;
-
 const parseSubtasksFromNotes = (notes?: string): Subtask[] => {
   if (!notes) return [];
 
@@ -29,6 +27,7 @@ export default function FocusPage() {
   const { tasks } = useTasks("today");
   const { settings } = useSettings();
   const focusMinutes = settings?.focusDuration ?? 25;
+  const breakMinutes = settings?.breakDuration ?? 5;
 
   const focusTask = useMemo(() => tasks.find((task) => !task.completed) ?? tasks[0], [tasks]);
   const subtasks = useMemo(() => parseSubtasksFromNotes(focusTask?.notes), [focusTask?.notes]);
@@ -39,9 +38,18 @@ export default function FocusPage() {
   const [focusStartTime, setFocusStartTime] = useState<number | null>(null);
   const [showOverfocusAlert, setShowOverfocusAlert] = useState(false);
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const [initialized, setInitialized] = useState(false);
 
-  const totalSeconds = (isBreak ? BREAK_MINUTES : focusMinutes) * 60;
+  const totalSeconds = (isBreak ? breakMinutes : focusMinutes) * 60;
   const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
+
+  // settings読み込み完了時にタイマー初期値を反映
+  useEffect(() => {
+    if (settings && !initialized && !isRunning) {
+      setTimeLeft(focusMinutes * 60);
+      setInitialized(true);
+    }
+  }, [settings, initialized, isRunning, focusMinutes]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -76,13 +84,13 @@ export default function FocusPage() {
 
   const resetTimer = () => {
     setIsRunning(false);
-    setTimeLeft((isBreak ? BREAK_MINUTES : focusMinutes) * 60);
+    setTimeLeft((isBreak ? breakMinutes : focusMinutes) * 60);
   };
 
   const switchMode = () => {
     setIsBreak(!isBreak);
     setIsRunning(false);
-    setTimeLeft((!isBreak ? BREAK_MINUTES : focusMinutes) * 60);
+    setTimeLeft((!isBreak ? breakMinutes : focusMinutes) * 60);
   };
 
   const toggleSubtask = (id: string, current: boolean) => {
