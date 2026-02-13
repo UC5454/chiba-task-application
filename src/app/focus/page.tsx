@@ -43,6 +43,26 @@ export default function FocusPage() {
   const totalSeconds = (isBreak ? breakMinutes : focusMinutes) * 60;
   const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
 
+  const playTimerSound = useCallback(() => {
+    try {
+      const ctx = new AudioContext();
+      const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.15 + 0.4);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.15);
+        osc.stop(ctx.currentTime + i * 0.15 + 0.4);
+      });
+    } catch {
+      // Audio not available
+    }
+  }, []);
+
   // settings読み込み完了時にタイマー初期値を反映
   useEffect(() => {
     if (settings && !initialized && !isRunning) {
@@ -57,13 +77,14 @@ export default function FocusPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           setIsRunning(false);
+          playTimerSound();
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, playTimerSound]);
 
   useEffect(() => {
     if (!focusStartTime) return;
