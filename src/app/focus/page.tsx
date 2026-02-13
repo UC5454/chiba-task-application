@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Play, Pause, RotateCcw, Check, Coffee, Droplets, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -43,9 +43,32 @@ export default function FocusPage() {
   const totalSeconds = (isBreak ? breakMinutes : focusMinutes) * 60;
   const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
 
-  const playTimerSound = useCallback(() => {
+  // iOS Safari対策: ユーザータップ時にAudioContextを作成・resume して保持
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const ensureAudioContext = useCallback(() => {
     try {
-      const ctx = new AudioContext();
+      if (!audioCtxRef.current) {
+        const AC = typeof AudioContext !== "undefined" ? AudioContext : (globalThis as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (AC) audioCtxRef.current = new AC();
+      }
+      if (audioCtxRef.current?.state === "suspended") {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+    } catch {
+      // Audio API not available on this device
+    }
+  }, []);
+
+  const playTimerSound = useCallback(() => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+
+    try {
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+
       const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
       notes.forEach((freq, i) => {
         const osc = ctx.createOscillator();
@@ -59,7 +82,14 @@ export default function FocusPage() {
         osc.stop(ctx.currentTime + i * 0.15 + 0.4);
       });
     } catch {
-      // Audio not available
+      // Playback failed — no crash
+    }
+
+    // Androidバイブレーション（フォールバック）
+    try {
+      navigator?.vibrate?.([200, 100, 200]);
+    } catch {
+      // vibrate not supported
     }
   }, []);
 
@@ -86,6 +116,13 @@ export default function FocusPage() {
     return () => clearInterval(interval);
   }, [isRunning, playTimerSound]);
 
+  // AudioContext cleanup on unmount
+  useEffect(() => {
+    return () => {
+      audioCtxRef.current?.close().catch(() => {});
+    };
+  }, []);
+
   useEffect(() => {
     if (!focusStartTime) return;
     const check = setInterval(() => {
@@ -97,11 +134,13 @@ export default function FocusPage() {
   }, [focusStartTime]);
 
   const toggleTimer = useCallback(() => {
+    // ユーザータップのコンテキストでAudioContextを準備（iOS Safari対策）
+    ensureAudioContext();
     if (!isRunning && !focusStartTime) {
       setFocusStartTime(Date.now());
     }
     setIsRunning(!isRunning);
-  }, [isRunning, focusStartTime]);
+  }, [isRunning, focusStartTime, ensureAudioContext]);
 
   const resetTimer = () => {
     setIsRunning(false);
