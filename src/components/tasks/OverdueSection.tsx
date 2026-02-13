@@ -10,17 +10,27 @@ interface OverdueSectionProps {
 
 export function OverdueSection({ tasks, onChanged }: OverdueSectionProps) {
   const handleReschedule = async (taskId: string, newDueDate: "today" | "tomorrow") => {
-    await fetch(`/api/tasks/${encodeURIComponent(taskId)}/reschedule`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ newDueDate }),
-    });
-    await onChanged?.();
+    try {
+      const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/reschedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newDueDate }),
+      });
+      if (!res.ok) throw new Error();
+      await onChanged?.();
+    } catch {
+      // silently fail — task list will refresh on next poll
+    }
   };
 
   const handleRelease = async (taskId: string) => {
-    await fetch(`/api/tasks/${encodeURIComponent(taskId)}/release`, { method: "POST" });
-    await onChanged?.();
+    try {
+      const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/release`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      await onChanged?.();
+    } catch {
+      // silently fail
+    }
   };
 
   return (

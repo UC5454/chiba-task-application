@@ -7,6 +7,7 @@ const GITHUB_REF = process.env.GITHUB_TEAM_REPO_REF ?? "main";
 const EMPLOYEES: Array<AIEmployee & { path: string }> = [
   { name: "リン", id: "rin", team: "executive", role: "COO", avatarUrl: "", path: "リン_executive_COO" },
   { name: "ミナト", id: "minato", team: "coach", role: "パーソナルコーチ", avatarUrl: "", path: "ミナト_coach_パーソナルコーチ" },
+  { name: "マコト", id: "makoto", team: "hr", role: "人事マネージャー", avatarUrl: "", path: "hr/マコト_hr_人事マネージャー" },
   { name: "ミナミ", id: "minami", team: "secretary", role: "エグゼクティブ秘書", avatarUrl: "", path: "ミナミ_secretary_エグゼクティブ秘書" },
   { name: "コトハ", id: "kotoha", team: "note-team", role: "リサーチャー", avatarUrl: "", path: "note-team/コトハ_note-team_リサーチャー" },
   { name: "ツムギ", id: "tsumugi", team: "note-team", role: "ライター", avatarUrl: "", path: "note-team/ツムギ_note-team_ライター" },
@@ -18,6 +19,7 @@ const EMPLOYEES: Array<AIEmployee & { path: string }> = [
   { name: "カイト", id: "kaito", team: "web-team", role: "エンジニア", avatarUrl: "", path: "web-team/カイト_web-team_エンジニア" },
   { name: "ツカサ", id: "tsukasa", team: "prompt-team", role: "プロンプトエンジニア", avatarUrl: "", path: "prompt-team/ツカサ_prompt-team_プロンプトエンジニア" },
   { name: "ショウ", id: "shou", team: "slides-team", role: "営業資料スペシャリスト", avatarUrl: "", path: "slides-team/ショウ_slides-team_営業資料スペシャリスト" },
+  { name: "アヤ", id: "aya", team: "slides-team", role: "スライドデザイナー", avatarUrl: "", path: "slides-team/アヤ_slides-team_スライドデザイナー" },
   { name: "ヒナ", id: "hina", team: "slides-team", role: "研修資料スペシャリスト", avatarUrl: "", path: "slides-team/ヒナ_slides-team_研修資料スペシャリスト" },
   { name: "ヒカル", id: "hikaru", team: "video-team", role: "映像ディレクター", avatarUrl: "", path: "video-team/ヒカル_video-team_映像ディレクター" },
   { name: "カナデ", id: "kanade", team: "video-team", role: "映像エディター", avatarUrl: "", path: "video-team/カナデ_video-team_映像エディター" },

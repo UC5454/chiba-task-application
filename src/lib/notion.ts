@@ -249,7 +249,7 @@ export const syncDailyLogToNotion = async (log: DailyLog): Promise<string | null
 
   // Notion pages.create でDBに新規ページ作成（childrenは100ブロック制限）
   const created = await notion.pages.create({
-    parent: { data_source_id: dailyLogDatabaseId },
+    parent: { database_id: dailyLogDatabaseId },
     properties: {
       Name: { title: toRichText(`${log.date} ${log.employeeName}`) },
       Date: { date: { start: log.date } },

@@ -4,6 +4,8 @@ import { getAccessTokenFromSession } from "@/lib/api-auth";
 import { updateGamificationOnComplete } from "@/lib/gamification";
 import { completeTask, getTaskById, listTasks } from "@/lib/google-tasks";
 import { writeTaskHistory } from "@/lib/notion";
+import { getSupabaseAdminClient } from "@/lib/supabase";
+import type { Category } from "@/types";
 
 const isToday = (date: Date) => {
   const now = new Date();
@@ -20,8 +22,23 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   try {
     const task = await getTaskById(accessToken, id);
+
+    // Supabaseからcategoryを取得（Google Tasks APIには含まれない）
+    let category: Category | undefined;
+    try {
+      const supabase = getSupabaseAdminClient();
+      const { data } = await supabase
+        .from("task_metadata")
+        .select("category")
+        .eq("google_task_id", task.googleTaskId)
+        .maybeSingle();
+      category = data?.category ?? undefined;
+    } catch {
+      // Supabase unavailable — continue without category
+    }
+
     await completeTask(accessToken, id);
-    await writeTaskHistory(task, "完了").catch((err) => console.warn("writeTaskHistory failed:", err));
+    await writeTaskHistory({ ...task, category }, "完了").catch((err) => console.warn("writeTaskHistory failed:", err));
 
     const tasks = await listTasks(accessToken);
     const remainingTodayTasks = tasks.filter((item) => !item.completed && item.dueDate && isToday(new Date(item.dueDate))).length;

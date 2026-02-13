@@ -9,6 +9,7 @@ import { useEmployeeDetail } from "@/hooks/useEmployeeDetail";
 const teamLabels: Record<string, string> = {
   executive: "直轄",
   coach: "コーチ",
+  hr: "人事",
   secretary: "秘書",
   "note-team": "Note",
   "web-team": "Web",
@@ -19,13 +20,14 @@ const teamLabels: Record<string, string> = {
 
 const teamColors: Record<string, string> = {
   executive: "bg-purple-100 text-purple-700",
-  coach: "bg-sky-100 text-sky-700",
+  coach: "bg-teal-100 text-teal-700",
+  hr: "bg-indigo-100 text-indigo-700",
   secretary: "bg-pink-100 text-pink-700",
   "note-team": "bg-emerald-100 text-emerald-700",
   "web-team": "bg-blue-100 text-blue-700",
   "prompt-team": "bg-amber-100 text-amber-700",
   "slides-team": "bg-orange-100 text-orange-700",
-  "video-team": "bg-gray-100 text-gray-700",
+  "video-team": "bg-red-100 text-red-700",
 };
 
 interface Props {
