@@ -26,10 +26,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       estimatedMinutes?: number;
     };
 
+    // 日付をRFC 3339形式に正規化
+    let dueDate = body.dueDate;
+    if (dueDate && !dueDate.includes("T")) {
+      dueDate = `${dueDate}T00:00:00.000Z`;
+    }
+
     const task = await updateTask(accessToken, id, {
       title: body.title,
       notes: body.notes,
-      dueDate: body.dueDate,
+      dueDate,
     });
 
     const supabase = getSupabaseAdminClient();

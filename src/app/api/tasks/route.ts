@@ -145,7 +145,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
     }
 
-    const dueDate = body.dueDate ?? new Date().toISOString();
+    // 日付をRFC 3339形式に正規化（Google Tasks APIが要求）
+    // HTML date input は "YYYY-MM-DD" を返すが、APIは "YYYY-MM-DDT00:00:00.000Z" が必要
+    let dueDate: string | undefined;
+    if (body.dueDate) {
+      dueDate = body.dueDate.includes("T") ? body.dueDate : `${body.dueDate}T00:00:00.000Z`;
+    }
+
     const createdTask = await createTask(accessToken, {
       title: body.title.trim(),
       notes: body.notes,
