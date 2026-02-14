@@ -65,6 +65,7 @@ export interface AIEmployee {
   avatarUrl: string;
   currentTask?: string;
   inboxCount?: number;
+  logDates?: string[]; // 日報がある日付一覧 (YYYY-MM-DD desc)
 }
 
 // ゲーミフィケーション

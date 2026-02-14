@@ -1,12 +1,11 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Users, CheckCheck } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState } from "react";
 
 import { EmployeeDetailDrawer } from "@/components/dashboard/EmployeeDetailDrawer";
 import { useTeamStatus } from "@/hooks/useTeamStatus";
-
-const STORAGE_KEY = "sou-task:inbox-read";
+import { useReadLogs } from "@/hooks/useReadLogs";
 
 const teamLabels: Record<string, string> = {
   executive: "直轄",
@@ -34,57 +33,17 @@ const teamColors: Record<string, string> = {
 
 const getInitial = (name: string): string => name.charAt(0);
 
-/** localStorageから既読数マップを読み込む */
-const loadReadCounts = (): Record<string, number> => {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
-  } catch {
-    return {};
-  }
-};
-
-/** localStorageに既読数マップを保存する */
-const saveReadCounts = (counts: Record<string, number>) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(counts));
-  } catch {
-    // quota exceeded etc.
-  }
-};
-
 export function TeamStatus() {
   const [expanded, setExpanded] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
-  const [readCounts, setReadCounts] = useState<Record<string, number>>({});
   const { team, isLoading, error } = useTeamStatus();
-
-  // 初回マウント時にlocalStorageから読み込む
-  useEffect(() => {
-    setReadCounts(loadReadCounts());
-  }, []);
-
-  /** 未読数を計算（サーバーのinboxCount - 既読数、0以上） */
-  const getUnreadCount = useCallback((employeeId: string, serverCount: number): number => {
-    const read = readCounts[employeeId] ?? 0;
-    // サーバー側のカウントが減った場合（AI社員が処理した場合）、既読数も調整
-    return Math.max(0, serverCount - read);
-  }, [readCounts]);
-
-  /** 既読ボタン押下 */
-  const handleMarkRead = useCallback((e: React.MouseEvent, employeeId: string, serverCount: number) => {
-    e.stopPropagation(); // 行クリック（ドロワー）の発火を防ぐ
-    const next = { ...readCounts, [employeeId]: serverCount };
-    setReadCounts(next);
-    saveReadCounts(next);
-  }, [readCounts]);
+  const { getUnreadCount, markAsRead, markAllAsRead, isRead } = useReadLogs();
 
   const displayTeam = expanded ? team : team.slice(0, 4);
   const activeCount = team.filter((m) => m.currentTask && !m.currentTask.includes("待機")).length;
 
-  // 未読通知の総数
-  const totalUnread = team.reduce((sum, m) => sum + getUnreadCount(m.id, m.inboxCount ?? 0), 0);
+  // 全社員の未読日報の合計
+  const totalUnread = team.reduce((sum, m) => sum + getUnreadCount(m.id, m.logDates ?? []), 0);
 
   if (isLoading) {
     return (
@@ -142,8 +101,8 @@ export function TeamStatus() {
         )}
 
         {displayTeam.map((member) => {
-          const serverCount = member.inboxCount ?? 0;
-          const unread = getUnreadCount(member.id, serverCount);
+          const logDates = member.logDates ?? [];
+          const unread = getUnreadCount(member.id, logDates);
 
           return (
             <div
@@ -166,26 +125,16 @@ export function TeamStatus() {
                 <p className="text-[11px] text-[var(--color-muted)] truncate mt-0.5">{member.currentTask || "待機中"}</p>
               </div>
 
-              {unread > 0 ? (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-bold text-white bg-[var(--color-priority-high)] w-5 h-5 rounded-full flex items-center justify-center">
-                    {unread}
-                  </span>
-                  <button
-                    onClick={(e) => handleMarkRead(e, member.id, serverCount)}
-                    className="flex items-center gap-0.5 px-2 py-1 rounded-full text-[10px] font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 active:scale-95 transition-all"
-                    aria-label={`${member.name}の通知を既読にする`}
-                  >
-                    <CheckCheck size={12} />
-                    <span>既読</span>
-                  </button>
-                </div>
-              ) : serverCount > 0 ? (
+              {unread > 0 && (
+                <span className="shrink-0 text-[10px] font-bold text-white bg-[var(--color-priority-high)] w-5 h-5 rounded-full flex items-center justify-center">
+                  {unread}
+                </span>
+              )}
+              {unread === 0 && logDates.length > 0 && (
                 <span className="shrink-0 text-[10px] text-[var(--color-muted)] flex items-center gap-0.5">
                   <CheckCheck size={12} />
-                  既読
                 </span>
-              ) : null}
+              )}
             </div>
           );
         })}
@@ -197,7 +146,14 @@ export function TeamStatus() {
         </button>
       )}
 
-      <EmployeeDetailDrawer open={!!selectedEmployeeId} employeeId={selectedEmployeeId} onClose={() => setSelectedEmployeeId(null)} />
+      <EmployeeDetailDrawer
+        open={!!selectedEmployeeId}
+        employeeId={selectedEmployeeId}
+        onClose={() => setSelectedEmployeeId(null)}
+        onMarkRead={markAsRead}
+        onMarkAllRead={markAllAsRead}
+        isDateRead={isRead}
+      />
     </section>
   );
 }

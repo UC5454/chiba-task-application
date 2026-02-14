@@ -122,18 +122,20 @@ export const getDailyLogDates = async (employeePath: string): Promise<string[]> 
 
 export const getEmployees = () => EMPLOYEES;
 
-export const getTeamStatus = async (): Promise<AIEmployee[]> => {
+export const getTeamStatus = async (): Promise<(AIEmployee & { logDates: string[] })[]> => {
   const team = await Promise.all(
     EMPLOYEES.map(async (employee) => {
-      const [currentTaskMd, inboxMd] = await Promise.all([
+      const [currentTaskMd, inboxMd, logDates] = await Promise.all([
         fetchRepoFile(`${employee.path}/CurrentTask.md`),
         fetchRepoFile(`${employee.path}/INBOX.md`),
+        getDailyLogDates(employee.path),
       ]);
 
       return {
         ...employee,
         currentTask: parseCurrentTask(currentTaskMd),
         inboxCount: countInbox(inboxMd),
+        logDates,
       };
     }),
   );
