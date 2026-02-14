@@ -24,9 +24,9 @@ const formatDate = (iso: string) => {
 /** 直近の営業日（月〜金）を返す */
 const getLastWeekday = (): string => {
   const d = new Date();
-  const day = d.getDay(); // 0=日, 6=土
-  if (day === 0) d.setDate(d.getDate() - 2); // 日→金
-  else if (day === 6) d.setDate(d.getDate() - 1); // 土→金
+  const day = d.getDay();
+  if (day === 0) d.setDate(d.getDate() - 2);
+  else if (day === 6) d.setDate(d.getDate() - 1);
   return d.toISOString().slice(0, 10);
 };
 
@@ -40,7 +40,9 @@ export function RealTeamReports() {
   const shiftDate = (days: number) => {
     const d = new Date(date + "T00:00:00");
     d.setDate(d.getDate() + days);
-    setDate(d.toISOString().slice(0, 10));
+    const next = d.toISOString().slice(0, 10);
+    if (next > today) return;
+    setDate(next);
     setExpandedId(null);
   };
 
@@ -62,31 +64,54 @@ export function RealTeamReports() {
             </span>
           )}
         </h2>
-        <div className="flex items-center gap-1">
-          <button onClick={() => shiftDate(-1)} className="p-1 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors">
-            <ChevronLeft size={14} className="text-[var(--color-muted)]" />
-          </button>
-          <span className="text-xs font-medium text-[var(--color-foreground)] min-w-[70px] text-center">{formatDate(date)}</span>
-          <button
-            onClick={() => shiftDate(1)}
-            disabled={date >= today}
-            className="p-1 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-30"
-          >
-            <ChevronRight size={14} className="text-[var(--color-muted)]" />
-          </button>
-        </div>
+        {!isLoading && reports.length > 0 && (
+          <span className="text-xs text-[var(--color-muted)] bg-[var(--color-surface)] px-2.5 py-1 rounded-full">
+            {reports.length}名提出
+          </span>
+        )}
+      </div>
+
+      {/* 日付ナビゲーション */}
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <button
+          onClick={() => shiftDate(-1)}
+          aria-label="前日の日報"
+          className="flex items-center justify-center w-11 h-11 rounded-full hover:bg-[var(--color-surface-hover)] active:scale-95 transition-all"
+        >
+          <ChevronLeft size={18} className="text-[var(--color-muted)]" />
+        </button>
+        <span className="text-sm font-semibold text-[var(--color-foreground)] min-w-[90px] text-center">
+          {formatDate(date)}
+        </span>
+        <button
+          onClick={() => shiftDate(1)}
+          disabled={date >= today}
+          aria-label="翌日の日報"
+          className="flex items-center justify-center w-11 h-11 rounded-full hover:bg-[var(--color-surface-hover)] active:scale-95 transition-all disabled:opacity-30 disabled:pointer-events-none"
+        >
+          <ChevronRight size={18} className="text-[var(--color-muted)]" />
+        </button>
       </div>
 
       {isLoading ? (
-        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
-          <p className="text-sm text-[var(--color-muted)]">読み込み中...</p>
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+              <div className="w-8 h-8 rounded-full animate-pulse bg-[var(--color-border-light)]" />
+              <div className="flex-1 space-y-2">
+                <div className="h-3 w-24 animate-pulse rounded bg-[var(--color-border-light)]" />
+                <div className="h-2.5 w-40 animate-pulse rounded bg-[var(--color-border-light)]" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : error ? (
-        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
           <p className="text-sm text-[var(--color-muted)]">取得できませんでした</p>
         </div>
       ) : reports.length === 0 ? (
-        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+          <p className="text-2xl mb-2">📋</p>
           <p className="text-sm text-[var(--color-muted)]">この日の日報はありません</p>
         </div>
       ) : (
@@ -95,7 +120,7 @@ export function RealTeamReports() {
             <div className="flex justify-end mb-1">
               <button
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 active:scale-95 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 active:scale-95 transition-all"
               >
                 <CheckCheck size={10} />
                 すべて既読
@@ -109,17 +134,18 @@ export function RealTeamReports() {
             return (
               <div
                 key={report.id}
-                className="bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden"
+                className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden transition-shadow hover:shadow-[var(--shadow-md)]"
               >
                 <button
                   onClick={() => setExpandedId(expanded ? null : report.id)}
-                  className="flex items-center gap-3 w-full px-3.5 py-2.5 text-left active:bg-[var(--color-surface-hover)] transition-colors"
+                  aria-expanded={expanded}
+                  className="flex items-center gap-3 w-full px-4 py-3.5 text-left active:bg-[var(--color-surface-hover)] transition-colors"
                 >
                   <div className="relative shrink-0">
                     {report.avatarUrl ? (
-                      <img src={report.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      <img src={report.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-xs font-bold text-[var(--color-primary)]">
+                      <div className="w-9 h-9 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center text-sm font-bold text-[var(--color-primary)]">
                         {report.submitter.charAt(0)}
                       </div>
                     )}
@@ -130,7 +156,7 @@ export function RealTeamReports() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className={`text-xs font-semibold text-[var(--color-foreground)] ${!read ? "" : "opacity-60"}`}>
+                      <span className={`text-xs font-semibold text-[var(--color-foreground)] ${read ? "opacity-60" : ""}`}>
                         {report.submitter}
                       </span>
                       {report.department && (
@@ -141,30 +167,34 @@ export function RealTeamReports() {
                     </div>
                     {report.gorillaMind && (
                       <p className="text-[10px] text-[var(--color-muted)] truncate mt-0.5">
-                        {report.gorillaMind}
+                        🦍 {report.gorillaMind}
                       </p>
                     )}
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-1">
+                  <div className="shrink-0 flex items-center gap-1.5">
                     {read && <CheckCheck size={12} className="text-[var(--color-muted)]" />}
-                    {expanded ? <ChevronUp size={14} className="text-[var(--color-muted)]" /> : <ChevronDown size={14} className="text-[var(--color-muted)]" />}
+                    {expanded ? (
+                      <ChevronUp size={16} className="text-[var(--color-muted)]" />
+                    ) : (
+                      <ChevronDown size={16} className="text-[var(--color-muted)]" />
+                    )}
                   </div>
                 </button>
 
                 {expanded && (
-                  <div className="px-3.5 pb-3 border-t border-[var(--color-border)]">
-                    <div className="flex items-center justify-between mt-2 mb-2">
+                  <div className="px-4 pb-4 border-t border-[var(--color-border-light)]">
+                    <div className="flex items-center justify-between mt-3 mb-3">
                       {!read ? (
                         <button
                           onClick={() => markAsRead(`notion:${report.id}`, date)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 active:scale-95 transition-all"
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 active:scale-95 transition-all"
                         >
                           <CheckCheck size={12} />
                           既読にする
                         </button>
                       ) : (
-                        <span className="flex items-center gap-1 text-[10px] text-[var(--color-muted)]">
+                        <span className="flex items-center gap-1 px-3 py-1.5 text-[11px] text-[var(--color-muted)]">
                           <CheckCheck size={12} />
                           既読
                         </span>
@@ -173,14 +203,14 @@ export function RealTeamReports() {
                         href={report.notionUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[10px] text-[var(--color-primary)] hover:underline"
+                        className="flex items-center gap-1 px-3 py-1.5 text-[11px] text-[var(--color-primary)] hover:underline rounded-full hover:bg-[var(--color-primary)]/5 transition-colors"
                       >
-                        Notion <ExternalLink size={10} />
+                        Notionで開く <ExternalLink size={10} />
                       </a>
                     </div>
-                    <pre className="max-h-60 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-[var(--color-foreground)]">
+                    <div className="max-h-72 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-[var(--color-foreground)] bg-[var(--color-background)] rounded-[var(--radius-md)] p-3">
                       {report.content || "内容なし"}
-                    </pre>
+                    </div>
                   </div>
                 )}
               </div>
