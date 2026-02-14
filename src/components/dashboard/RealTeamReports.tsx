@@ -21,12 +21,21 @@ const formatDate = (iso: string) => {
   return `${m}/${day}(${weekday})`;
 };
 
+/** 直近の営業日（月〜金）を返す */
+const getLastWeekday = (): string => {
+  const d = new Date();
+  const day = d.getDay(); // 0=日, 6=土
+  if (day === 0) d.setDate(d.getDate() - 2); // 日→金
+  else if (day === 6) d.setDate(d.getDate() - 1); // 土→金
+  return d.toISOString().slice(0, 10);
+};
+
 export function RealTeamReports() {
   const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
+  const [date, setDate] = useState(getLastWeekday);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { reports, isLoading, error } = useNotionReports(date);
-  const { markAsRead, markAllAsRead, isRead, getUnreadCount } = useReadLogs();
+  const { markAsRead, isRead } = useReadLogs();
 
   const shiftDate = (days: number) => {
     const d = new Date(date + "T00:00:00");
@@ -35,8 +44,6 @@ export function RealTeamReports() {
     setExpandedId(null);
   };
 
-  const reportIds = reports.map((r) => `notion:${r.id}`);
-  const reportDates = reports.map(() => date);
   const totalUnread = reports.filter((r) => !isRead(`notion:${r.id}`, date)).length;
 
   const handleMarkAllRead = () => {
