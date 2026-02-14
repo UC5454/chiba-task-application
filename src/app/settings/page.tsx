@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Bell, Brain, Timer } from "lucide-react";
+import { ArrowLeft, Bell, Brain, Timer, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { signOut } from "next-auth/react";
 
 import { useSettings } from "@/hooks/useSettings";
 import type { ADHDSettings } from "@/types";
@@ -191,11 +192,23 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/" className="p-2 -ml-2 rounded-[var(--radius-md)] hover:bg-[var(--color-surface-hover)] transition-colors md:hidden">
-          <ArrowLeft size={20} className="text-[var(--color-muted)]" />
-        </Link>
-        <h1 className="text-xl font-bold text-[var(--color-foreground)]">設定</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="p-2 -ml-2 rounded-[var(--radius-md)] hover:bg-[var(--color-surface-hover)] transition-colors md:hidden">
+            <ArrowLeft size={20} className="text-[var(--color-muted)]" />
+          </Link>
+          <h1 className="text-xl font-bold text-[var(--color-foreground)]">設定</h1>
+        </div>
+        <button
+          onClick={() => {
+            const el = document.getElementById("danger-zone");
+            if (el) el.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-[var(--radius-md)] transition-colors"
+        >
+          <Trash2 size={14} />
+          <span>データ消去</span>
+        </button>
       </div>
 
       <section>
@@ -305,12 +318,86 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      <DangerZone />
+
       <div className="text-center py-4">
         <p className="text-xs text-[var(--color-muted)]">SOU Task v0.1.0</p>
         <p className="text-[10px] text-[var(--color-border)] mt-1">Built by 蒼月海斗 / web-team</p>
         {saveState !== "idle" && <p className="text-[10px] text-[var(--color-muted)] mt-2">{saveState === "saving" ? "設定を保存中..." : "設定を保存しました"}</p>}
       </div>
     </div>
+  );
+}
+
+function DangerZone() {
+  const { toast } = useToast();
+  const [step, setStep] = useState<"idle" | "confirm" | "deleting">("idle");
+
+  const handleDelete = async () => {
+    setStep("deleting");
+    try {
+      const response = await fetch("/api/account", { method: "DELETE" });
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
+      toast.success("データを削除しました。ログアウトします。");
+      setTimeout(() => signOut({ callbackUrl: "/" }), 1500);
+    } catch (error) {
+      console.error(error);
+      toast.error("データの削除に失敗しました。");
+      setStep("idle");
+    }
+  };
+
+  return (
+    <section id="danger-zone">
+      <div className="flex items-center gap-2 mb-3">
+        <Trash2 size={16} className="text-red-500" />
+        <h2 className="text-sm font-bold text-red-500">データ消去</h2>
+      </div>
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-red-200 dark:border-red-900/30">
+        <div className="px-4 py-3.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-[var(--color-foreground)]">ユーザーデータの消去</p>
+              <p className="text-[11px] text-[var(--color-muted)] mt-0.5">設定・連続記録・バッジ・メタデータを全て削除</p>
+            </div>
+            {step === "idle" && (
+              <button
+                onClick={() => setStep("confirm")}
+                className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400 rounded-[var(--radius-md)] hover:bg-red-100 dark:hover:bg-red-950/50 transition-colors"
+              >
+                削除
+              </button>
+            )}
+          </div>
+          {step === "confirm" && (
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setStep("idle")}
+                className="flex-1 px-3 py-2 text-xs font-medium text-[var(--color-muted)] bg-[var(--color-surface-hover)] rounded-[var(--radius-md)] hover:bg-[var(--color-border-light)] transition-colors"
+              >
+                やめる
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex-1 px-3 py-2 text-xs font-medium text-white bg-red-500 rounded-[var(--radius-md)] hover:bg-red-600 transition-colors"
+              >
+                本当に削除する
+              </button>
+            </div>
+          )}
+          {step === "deleting" && (
+            <p className="text-xs text-red-500 mt-2">削除中...</p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

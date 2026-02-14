@@ -14,8 +14,8 @@ const navItems = [
   { href: "/", icon: Home, label: "ホーム" },
   { href: "/tasks", icon: CheckSquare, label: "タスク" },
   { href: "#add", icon: Plus, label: "追加", isCenter: true },
-  { href: "/notes", icon: StickyNote, label: "メモ" },
   { href: "/focus", icon: Target, label: "集中" },
+  { href: "/settings", icon: Settings, label: "設定" },
 ];
 
 export function BottomNav() {
