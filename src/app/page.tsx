@@ -5,6 +5,7 @@ import { TodaySchedule } from "@/components/dashboard/TodaySchedule";
 import { OverdueBanner } from "@/components/dashboard/OverdueBanner";
 import { TeamStatus } from "@/components/dashboard/TeamStatus";
 import { TeamOverview } from "@/components/dashboard/TeamOverview";
+import { RealTeamReports } from "@/components/dashboard/RealTeamReports";
 import { StreakCard } from "@/components/dashboard/StreakCard";
 import { UserInsights } from "@/components/dashboard/UserInsights";
 
@@ -20,6 +21,7 @@ export default function DashboardPage() {
       <TeamOverview />
       <UserInsights />
       <TeamStatus />
+      <RealTeamReports />
     </div>
   );
 }
