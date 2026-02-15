@@ -2,8 +2,8 @@
 
 import confetti from "canvas-confetti";
 import { ArrowLeft, Calendar, Check, Clock, Loader2, StickyNote, Tag, Trash2 } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -35,11 +35,11 @@ function formatDate(iso: string): string {
   return `${days}日前`;
 }
 
-export default function TaskDetailPage() {
-  const params = useParams();
+function TaskDetailContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const id = params.id as string;
+  const id = searchParams.get("id") ?? "";
 
   const [task, setTask] = useState<Task | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,11 +49,14 @@ export default function TaskDetailPage() {
   const [newNoteText, setNewNoteText] = useState("");
   const [showNewNote, setShowNewNote] = useState(false);
 
-  // Debounce timer ref
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch task
   useEffect(() => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     const fetchTask = async () => {
       try {
         const res = await fetch(`/api/tasks/${encodeURIComponent(id)}`);
@@ -86,7 +89,6 @@ export default function TaskDetailPage() {
     fetchNotes();
   }, [id]);
 
-  // Auto-save with debounce
   const saveTask = useCallback(
     async (updates: Record<string, unknown>) => {
       setSaving(true);
@@ -403,5 +405,19 @@ export default function TaskDetailPage() {
         variant="danger"
       />
     </div>
+  );
+}
+
+export default function TaskDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="max-w-2xl mx-auto px-4 py-8 flex items-center justify-center min-h-[50vh]">
+          <Loader2 size={24} className="animate-spin text-[var(--color-muted)]" />
+        </div>
+      }
+    >
+      <TaskDetailContent />
+    </Suspense>
   );
 }
