@@ -89,7 +89,23 @@ export function TeamStatus() {
             </span>
           )}
         </h2>
-        <span className="text-xs text-[var(--color-muted)] bg-[var(--color-surface)] px-2.5 py-1 rounded-full">{activeCount}名稼働中</span>
+        <div className="flex items-center gap-2">
+          {totalUnread > 0 && (
+            <button
+              onClick={() => {
+                team.forEach((m) => {
+                  const dates = m.logDates ?? [];
+                  if (dates.length > 0) markAllAsRead(m.id, dates);
+                });
+              }}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 active:scale-95 transition-all"
+            >
+              <CheckCheck size={12} />
+              全て既読
+            </button>
+          )}
+          <span className="text-xs text-[var(--color-muted)] bg-[var(--color-surface)] px-2.5 py-1 rounded-full">{activeCount}名稼働中</span>
+        </div>
       </div>
 
       <div className="space-y-2">
