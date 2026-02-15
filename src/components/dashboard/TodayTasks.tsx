@@ -118,13 +118,17 @@ export function TodayTasks() {
 
 function TaskCard({ task, onComplete }: { task: Task; onComplete: (taskId: string) => void }) {
   return (
-    <div className="group flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all cursor-pointer active:scale-[0.99]">
+    <a
+      href={`/tasks/detail?id=${encodeURIComponent(task.id)}`}
+      className="group flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all cursor-pointer active:scale-[0.99]"
+      style={{ color: "inherit", textDecoration: "none" }}
+    >
       <div className={`w-0.5 h-8 rounded-full shrink-0 ${priorityColors[task.priority]}`} />
 
       <button
         className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-[var(--color-border)] hover:border-[var(--color-success)] hover:bg-[var(--color-success)]/10 transition-colors shrink-0 group/check"
         aria-label={`${task.title}を完了`}
-        onClick={() => onComplete(task.id)}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onComplete(task.id); }}
       >
         <Check size={14} className="text-transparent group-hover/check:text-[var(--color-success)]" />
       </button>
@@ -145,6 +149,6 @@ function TaskCard({ task, onComplete }: { task: Task; onComplete: (taskId: strin
       </div>
 
       <ChevronRight size={16} className="text-[var(--color-border)] group-hover:text-[var(--color-muted)] transition-colors shrink-0" />
-    </div>
+    </a>
   );
 }
