@@ -42,12 +42,12 @@ export function ConfirmDialog({
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => (!nextOpen ? onCancel() : undefined)}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50" />
         <Dialog.Content
-          className="fixed z-50 left-1/2 top-1/2 w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-lg)] p-5 focus:outline-none"
+          className="fixed z-50 left-1/2 top-1/2 w-[90vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-2xl)] bg-[var(--color-surface)] shadow-[var(--shadow-xl)] p-6 focus:outline-none animate-slide-in"
           aria-label={title}
         >
-          <Dialog.Title className="text-sm font-bold text-[var(--color-foreground)]">{title}</Dialog.Title>
+          <Dialog.Title className="text-base font-bold text-[var(--color-foreground)]">{title}</Dialog.Title>
           {description && <Dialog.Description className="text-xs text-[var(--color-muted)] mt-2 leading-relaxed">{description}</Dialog.Description>}
           <div className="flex justify-end gap-2 mt-5">
             <button

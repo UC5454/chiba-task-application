@@ -40,7 +40,7 @@ export function RealTeamReports() {
         </div>
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+            <div key={i} className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)]">
               <div className="w-8 h-8 rounded-full animate-pulse bg-[var(--color-border-light)]" />
               <div className="flex-1 space-y-1.5">
                 <div className="h-3 w-20 animate-pulse rounded bg-[var(--color-border-light)]" />
@@ -62,7 +62,7 @@ export function RealTeamReports() {
             社員の動き
           </h2>
         </div>
-        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)]">
           <p className="text-sm text-[var(--color-muted)]">接続できませんでした</p>
         </div>
       </section>
@@ -103,7 +103,7 @@ export function RealTeamReports() {
 
       <div className="space-y-2">
         {employees.length === 0 && (
-          <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+          <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)]">
             <p className="text-2xl mb-2">📋</p>
             <p className="text-sm text-[var(--color-muted)]">日報データがありません</p>
           </div>
@@ -116,7 +116,7 @@ export function RealTeamReports() {
           return (
             <div
               key={emp.id}
-              className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] cursor-pointer active:bg-[var(--color-surface-hover)] transition-colors hover:shadow-[var(--shadow-md)]"
+              className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] shadow-[var(--shadow-sm)] cursor-pointer active:bg-[var(--color-surface-hover)] transition-colors hover:shadow-[var(--shadow-md)]"
               onClick={() => setSelectedEmployee(emp)}
             >
               <div className="relative shrink-0">

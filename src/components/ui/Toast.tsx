@@ -20,7 +20,7 @@ export function Toast({ message, type = "info", onOpenChange }: ToastProps) {
     <RadixToast.Root
       defaultOpen
       onOpenChange={onOpenChange}
-      className={`w-full rounded-[var(--radius-md)] border bg-[var(--color-surface)] shadow-[var(--shadow-md)] px-4 py-3 text-sm font-medium ${tone}`}
+      className={`w-full rounded-[var(--radius-lg)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] px-5 py-3.5 text-sm font-medium animate-slide-in ${tone}`}
     >
       <RadixToast.Title>{message}</RadixToast.Title>
     </RadixToast.Root>

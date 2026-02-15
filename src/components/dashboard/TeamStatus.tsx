@@ -54,7 +54,7 @@ export function TeamStatus() {
             AI社員の動き
           </h2>
         </div>
-        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)]">
           <p className="text-sm text-[var(--color-muted)]">読み込み中...</p>
         </div>
       </section>
@@ -70,7 +70,7 @@ export function TeamStatus() {
             AI社員の動き
           </h2>
         </div>
-        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+        <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)]">
           <p className="text-sm text-[var(--color-muted)]">接続できませんでした</p>
         </div>
       </section>
@@ -110,7 +110,7 @@ export function TeamStatus() {
 
       <div className="space-y-2">
         {team.length === 0 && (
-          <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)]">
+          <div className="px-4 py-8 text-center bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)]">
             <p className="text-3xl mb-2">🤝</p>
             <p className="text-sm text-[var(--color-muted)]">AI社員ステータスがありません</p>
           </div>
@@ -123,7 +123,7 @@ export function TeamStatus() {
           return (
             <div
               key={member.id}
-              className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] cursor-pointer active:bg-[var(--color-surface-hover)] transition-colors"
+              className="flex items-center gap-3 px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] shadow-[var(--shadow-card)] shadow-[var(--shadow-sm)] cursor-pointer active:bg-[var(--color-surface-hover)] transition-colors"
               onClick={() => setSelectedEmployeeId(member.id)}
             >
               <div className="relative shrink-0">

@@ -191,13 +191,13 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="p-2 -ml-2 rounded-[var(--radius-md)] hover:bg-[var(--color-surface-hover)] transition-colors md:hidden">
             <ArrowLeft size={20} className="text-[var(--color-muted)]" />
           </Link>
-          <h1 className="text-xl font-bold text-[var(--color-foreground)]">設定</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">設定</h1>
         </div>
         <button
           onClick={() => {
@@ -216,7 +216,7 @@ export default function SettingsPage() {
           <Brain size={16} className="text-[var(--color-primary)]" />
           <h2 className="text-sm font-bold text-[var(--color-foreground)]">ADHD サポート</h2>
         </div>
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] divide-y divide-[var(--color-border-light)]">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] divide-y divide-[var(--color-border-light)]" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="flex items-center justify-between px-4 py-3.5">
             <div>
               <p className="text-sm font-medium text-[var(--color-foreground)]">1日の表示タスク上限</p>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
           <Timer size={16} className="text-[var(--color-primary)]" />
           <h2 className="text-sm font-bold text-[var(--color-foreground)]">集中モード</h2>
         </div>
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] divide-y divide-[var(--color-border-light)]">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] divide-y divide-[var(--color-border-light)]" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="flex items-center justify-between px-4 py-3.5">
             <div>
               <p className="text-sm font-medium text-[var(--color-foreground)]">ポモドーロ時間</p>
@@ -291,7 +291,7 @@ export default function SettingsPage() {
           <Bell size={16} className="text-[var(--color-primary)]" />
           <h2 className="text-sm font-bold text-[var(--color-foreground)]">通知</h2>
         </div>
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] divide-y divide-[var(--color-border-light)]">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] divide-y divide-[var(--color-border-light)]" style={{ boxShadow: "var(--shadow-card)" }}>
           <ToggleRow label="Web Push通知" description="ブラウザのプッシュ通知" enabled={webPush} onChange={toggleWebPush} />
           <ToggleRow label="Slack通知" description="Slackチャンネルにも通知" enabled={current.slackNotifyEnabled} onChange={(value) => saveSettings({ slackNotifyEnabled: value })} />
           <div className="flex items-center justify-between px-4 py-3.5">
@@ -360,7 +360,7 @@ function DangerZone() {
         <Trash2 size={16} className="text-red-500" />
         <h2 className="text-sm font-bold text-red-500">データ消去</h2>
       </div>
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-red-200 dark:border-red-900/30">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)]" style={{ boxShadow: "var(--shadow-card)" }}>
         <div className="px-4 py-3.5">
           <div className="flex items-center justify-between">
             <div>
@@ -420,11 +420,11 @@ function ToggleRow({
       </div>
       <button
         onClick={() => onChange(!enabled)}
-        className={`relative w-11 h-6 rounded-full transition-colors ${enabled ? "bg-[var(--color-primary)]" : "bg-[var(--color-border)]"}`}
+        className={`relative w-12 h-7 rounded-full transition-all ${enabled ? "bg-[var(--color-primary)]" : "bg-[var(--color-border)]"}`}
         role="switch"
         aria-checked={enabled}
       >
-        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform ${enabled ? "left-[22px]" : "left-0.5"}`} />
+        <div className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-[var(--shadow-md)] transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
       </button>
     </div>
   );

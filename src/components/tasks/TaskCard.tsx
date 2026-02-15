@@ -156,15 +156,16 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
   return (
     <>
       <div
-        className={`bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden transition-all hover:shadow-[var(--shadow-md)] ${
+        className={`bg-[var(--color-surface)] rounded-[var(--radius-xl)] overflow-hidden transition-all ${
           completed ? "opacity-50" : ""
         }`}
+        style={{ boxShadow: "var(--shadow-card)" }}
       >
       <div
         className="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-[var(--color-surface-hover)]"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className={`w-1 h-10 rounded-full shrink-0 ${priorityColors[task.priority]}`} />
+        <div className={`w-0.5 h-8 rounded-full shrink-0 ${priorityColors[task.priority]}`} />
 
         <button
           onClick={handleComplete}

@@ -15,14 +15,14 @@ interface TaskFilterProps {
 
 export function TaskFilter({ current, onChange }: TaskFilterProps) {
   return (
-    <div className="flex gap-2 p-1 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+    <div className="flex gap-1 p-1 bg-[var(--color-surface)] rounded-[var(--radius-lg)]" style={{ boxShadow: "var(--shadow-card)" }}>
       {filters.map((f) => (
         <button
           key={f.key}
           onClick={() => onChange(f.key)}
           className={`flex-1 py-2 text-xs font-medium rounded-[var(--radius-md)] transition-all ${
             current === f.key
-              ? "bg-[var(--color-primary)] text-white shadow-[var(--shadow-sm)]"
+              ? "bg-[var(--color-foreground)] text-white shadow-[var(--shadow-md)]"
               : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]"
           }`}
         >

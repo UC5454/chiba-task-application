@@ -77,12 +77,12 @@ export function InputDialog({
   return (
     <Dialog.Root open={open} onOpenChange={(nextOpen) => (!nextOpen ? onCancel() : undefined)}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50" />
         <Dialog.Content
-          className="fixed z-50 left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-lg)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-lg)] p-5 focus:outline-none"
+          className="fixed z-50 left-1/2 top-1/2 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-2xl)] bg-[var(--color-surface)] shadow-[var(--shadow-xl)] p-6 focus:outline-none animate-slide-in"
           aria-label={title}
         >
-          <Dialog.Title className="text-sm font-bold text-[var(--color-foreground)]">{title}</Dialog.Title>
+          <Dialog.Title className="text-base font-bold text-[var(--color-foreground)]">{title}</Dialog.Title>
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             {effectiveFields.map((field, index) => (
               <label key={field.name} className="block">
@@ -94,7 +94,7 @@ export function InputDialog({
                     value={values[field.name] ?? ""}
                     onChange={(event) => setValues((prev) => ({ ...prev, [field.name]: event.target.value }))}
                     placeholder={field.placeholder}
-                    className="mt-1 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                    className="mt-1 w-full rounded-[var(--radius-md)] border border-[var(--color-border-light)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
                   />
                 ) : (
                   <input
@@ -105,7 +105,7 @@ export function InputDialog({
                     onChange={(event) => setValues((prev) => ({ ...prev, [field.name]: event.target.value }))}
                     placeholder={field.placeholder}
                     required={field.required}
-                    className="mt-1 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                    className="mt-1 w-full rounded-[var(--radius-md)] border border-[var(--color-border-light)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
                   />
                 )}
               </label>

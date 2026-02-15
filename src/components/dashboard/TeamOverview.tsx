@@ -133,7 +133,7 @@ export function TeamOverview() {
   if (isLoading) {
     return (
       <section className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
-        <div className="animate-pulse bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+        <div className="animate-pulse bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 shadow-[var(--shadow-card)] shadow-[var(--shadow-sm)]">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-4 w-4 rounded bg-[var(--color-border-light)]" />
             <div className="h-4 w-32 rounded bg-[var(--color-border-light)]" />
@@ -159,7 +159,7 @@ export function TeamOverview() {
 
   return (
     <section className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 shadow-[var(--shadow-card)] shadow-[var(--shadow-sm)]">
         {/* ヘッダー */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">

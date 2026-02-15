@@ -13,7 +13,7 @@ export function StreakCard() {
   if (isLoading) {
     return (
       <section className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
-        <div className="animate-pulse bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+        <div className="animate-pulse bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 shadow-[var(--shadow-card)] shadow-[var(--shadow-sm)]">
           <div className="flex items-center justify-between mb-4">
             <div className="h-4 w-20 rounded bg-[var(--color-border-light)]" />
             <div className="h-6 w-20 rounded-full bg-[var(--color-border-light)]" />
@@ -42,7 +42,7 @@ export function StreakCard() {
 
   return (
     <section className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
-      <div className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-dark)] rounded-[var(--radius-xl)] p-5 text-white shadow-[var(--shadow-lg)]">
+      <div className="bg-gradient-to-br from-[#4F46E5] via-[var(--color-primary)] to-[#0EA5E9] rounded-[var(--radius-2xl)] p-6 text-white shadow-[var(--shadow-lg)]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Flame size={20} className="text-orange-300" />

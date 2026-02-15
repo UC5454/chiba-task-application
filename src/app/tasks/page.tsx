@@ -51,9 +51,9 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[var(--color-foreground)]">タスク</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">タスク</h1>
         <button
           onClick={() => setQuickAddOpen(true)}
           className="text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/8 px-3 py-1.5 rounded-full hover:bg-[var(--color-primary)]/15 transition-colors"
@@ -65,17 +65,17 @@ export default function TasksPage() {
       <TaskFilter current={filter} onChange={setFilter} />
 
       {filter === "completed" && completionStats && (
-        <div className="flex items-center gap-4 px-4 py-3 bg-gradient-to-r from-[var(--color-success)]/10 to-[var(--color-primary)]/10 rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+        <div className="flex items-center gap-4 px-4 py-3.5 bg-gradient-to-r from-[var(--color-success)]/8 to-[var(--color-primary)]/8 rounded-[var(--radius-xl)]" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="text-center flex-1">
             <p className="text-lg font-bold text-[var(--color-success)]">{completionStats.todayCount}</p>
             <p className="text-[10px] text-[var(--color-muted)]">今日</p>
           </div>
-          <div className="w-px h-8 bg-[var(--color-border)]" />
+          <div className="w-px h-8 bg-[var(--color-border-light)]" />
           <div className="text-center flex-1">
             <p className="text-lg font-bold text-[var(--color-primary)]">{completionStats.thisWeekCount}</p>
             <p className="text-[10px] text-[var(--color-muted)]">今週</p>
           </div>
-          <div className="w-px h-8 bg-[var(--color-border)]" />
+          <div className="w-px h-8 bg-[var(--color-border-light)]" />
           <div className="text-center flex-1">
             <p className="text-lg font-bold text-[var(--color-foreground)]">{completionStats.totalCount}</p>
             <p className="text-[10px] text-[var(--color-muted)]">累計</p>
@@ -93,7 +93,7 @@ export default function TasksPage() {
         ))}
 
         {filteredTasks.length === 0 && (
-          <div className="text-center py-12 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+          <div className="text-center py-12 bg-[var(--color-surface)] rounded-[var(--radius-xl)]" style={{ boxShadow: "var(--shadow-card)" }}>
             <p className="text-4xl mb-3">{filter === "completed" ? "🎉" : "✨"}</p>
             <p className="text-sm text-[var(--color-muted)]">{filter === "completed" ? "まだ完了タスクはないよ" : "今はタスクがありません。+追加で一歩だけ進めよう"}</p>
           </div>

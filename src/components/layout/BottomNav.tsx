@@ -62,7 +62,8 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[var(--color-surface)] border-t border-[var(--color-border)] safe-bottom">
+      {/* Mobile Bottom Nav — glass morphism */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden glass safe-bottom" style={{ boxShadow: "var(--shadow-nav)" }}>
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
           {navItems.map((item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -73,7 +74,8 @@ export function BottomNav() {
                 <button
                   key={item.href}
                   onClick={handleQuickAdd}
-                  className="relative -mt-6 flex items-center justify-center w-14 h-14 rounded-full bg-[var(--color-primary)] text-white shadow-[var(--shadow-lg)] active:scale-95 transition-transform"
+                  className="relative -mt-6 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-b from-[var(--color-primary-light)] to-[var(--color-primary)] text-white active:scale-95 transition-transform"
+                  style={{ boxShadow: "0 4px 16px rgba(37,99,235,0.3)" }}
                   aria-label="タスクまたはメモを追加"
                 >
                   <Icon size={28} strokeWidth={2.5} />
@@ -85,7 +87,7 @@ export function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-[var(--radius-md)] transition-colors min-w-[56px] ${
+                className={`flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-[var(--radius-md)] transition-all min-w-[56px] ${
                   isActive ? "text-[var(--color-primary)]" : "text-[var(--color-muted)]"
                 }`}
               >
@@ -97,10 +99,11 @@ export function BottomNav() {
         </div>
       </nav>
 
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 flex-col bg-[var(--color-surface)] border-r border-[var(--color-border)] z-50">
-        <div className="p-6 border-b border-[var(--color-border)]">
+      {/* Desktop Sidebar — subtle shadow, no border */}
+      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 flex-col bg-[var(--color-surface)] z-50" style={{ boxShadow: "var(--shadow-sidebar)" }}>
+        <div className="p-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--color-primary)] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--color-primary-light)] to-[var(--color-primary)] flex items-center justify-center">
               <span className="text-white font-bold text-lg">S</span>
             </div>
             <div>
@@ -110,7 +113,7 @@ export function BottomNav() {
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 px-3 space-y-0.5">
           {navItems.filter((item) => !item.isCenter).map((item) => {
             const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
             const Icon = item.icon;
@@ -119,12 +122,15 @@ export function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-[var(--radius-md)] transition-colors font-medium text-sm ${
+                className={`relative flex items-center gap-3 px-4 py-2.5 rounded-[var(--radius-md)] transition-all font-medium text-sm ${
                   isActive
-                    ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-                    : "text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)]"
+                    ? "bg-[var(--color-primary-subtle)] text-[var(--color-primary)]"
+                    : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)]"
                 }`}
               >
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[var(--color-primary)]" />
+                )}
                 <Icon size={20} />
                 <span>{item.label}</span>
               </Link>
@@ -133,19 +139,19 @@ export function BottomNav() {
 
           <button
             onClick={handleQuickAdd}
-            className="flex items-center gap-3 w-full px-4 py-3 mt-4 rounded-[var(--radius-md)] bg-[var(--color-primary)] text-white font-medium text-sm hover:bg-[var(--color-primary-dark)] transition-colors"
+            className="flex items-center gap-3 w-full px-4 py-2.5 mt-6 rounded-[var(--radius-md)] bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] text-white font-medium text-sm hover:opacity-90 transition-opacity"
           >
             <Plus size={20} />
             <span>新しいタスク</span>
           </button>
         </nav>
 
-        <div className="p-4 m-4 rounded-[var(--radius-lg)] bg-[var(--color-priority-mid-bg)] border border-[var(--color-streak)]/20">
+        <div className="p-3 m-3 rounded-[var(--radius-lg)] bg-gradient-to-br from-amber-50 to-orange-50" style={{ boxShadow: "var(--shadow-sm)" }}>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-lg">🔥</span>
             <span className="font-bold text-[var(--color-streak)]">{gamification?.currentStreak ?? 0}日連続!</span>
           </div>
-          <p className="text-xs text-[var(--color-muted)]">最高 {gamification?.longestStreak ?? 0}日 / 累計 {gamification?.totalCompleted ?? 0}件</p>
+          <p className="text-xs text-[var(--color-muted-foreground)]">最高 {gamification?.longestStreak ?? 0}日 / 累計 {gamification?.totalCompleted ?? 0}件</p>
         </div>
       </aside>
 

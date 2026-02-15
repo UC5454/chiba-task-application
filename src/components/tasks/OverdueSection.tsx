@@ -42,7 +42,7 @@ export function OverdueSection({ tasks, onChanged }: OverdueSectionProps) {
 
       <div className="space-y-2">
         {tasks.map((task) => (
-          <div key={task.id} className="bg-[var(--color-overdue-bg)] rounded-[var(--radius-lg)] border border-[var(--color-priority-high)]/12 p-3.5">
+          <div key={task.id} className="bg-[var(--color-overdue-bg)] rounded-[var(--radius-xl)] p-4" style={{ boxShadow: "var(--shadow-card)" }}>
             <div className="flex items-start gap-3">
               <div className="w-1 h-8 rounded-full bg-[var(--color-priority-high)] shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
@@ -61,7 +61,7 @@ export function OverdueSection({ tasks, onChanged }: OverdueSectionProps) {
               </button>
               <button
                 onClick={() => handleReschedule(task.id, "tomorrow")}
-                className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium text-[var(--color-foreground)] bg-[var(--color-surface)] rounded-full border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium text-[var(--color-foreground)] bg-[var(--color-surface)] rounded-full shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all"
               >
                 <ArrowRight size={12} />
                 明日に延期

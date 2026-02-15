@@ -166,16 +166,16 @@ export default function FocusPage() {
   const seconds = timeLeft % 60;
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 min-h-dvh flex flex-col">
-      <div className="flex items-center gap-3 mb-8">
+    <div className="max-w-lg mx-auto px-4 py-8 min-h-dvh flex flex-col">
+      <div className="flex items-center gap-3 mb-10">
         <Link href="/" className="p-2 -ml-2 rounded-[var(--radius-md)] hover:bg-[var(--color-surface-hover)] transition-colors">
           <ArrowLeft size={20} className="text-[var(--color-muted)]" />
         </Link>
-        <h1 className="text-lg font-bold text-[var(--color-foreground)]">集中モード</h1>
+        <h1 className="text-xl font-bold tracking-tight text-[var(--color-foreground)]">集中モード</h1>
       </div>
 
       {showOverfocusAlert && (
-        <div className="mb-6 p-4 bg-[var(--color-priority-mid-bg)] rounded-[var(--radius-lg)] border border-[var(--color-priority-mid)]/20 animate-fade-in-up">
+        <div className="mb-6 p-4 bg-[var(--color-priority-mid-bg)] rounded-[var(--radius-xl)] animate-fade-in-up" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="flex items-center gap-2 mb-2">
             <Coffee size={18} className="text-[var(--color-priority-mid)]" />
             <span className="text-sm font-bold text-[var(--color-priority-mid)]">2時間経過！一度休もう</span>
@@ -196,10 +196,10 @@ export default function FocusPage() {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-        <div className="relative w-56 h-56 mb-8">
+        <div className="relative w-64 h-64 mb-10">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 224 224">
-            <circle cx="112" cy="112" r="100" fill="none" stroke="var(--color-border-light)" strokeWidth="8" />
-            <circle cx="112" cy="112" r="100" fill="none" stroke={isBreak ? "var(--color-success)" : "var(--color-primary)"} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 100}`} strokeDashoffset={`${2 * Math.PI * 100 * (1 - progress / 100)}`} className="transition-all duration-1000" />
+            <circle cx="112" cy="112" r="100" fill="none" stroke="var(--color-border-light)" strokeWidth="6" />
+            <circle cx="112" cy="112" r="100" fill="none" stroke={isBreak ? "var(--color-success)" : "var(--color-primary)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 100}`} strokeDashoffset={`${2 * Math.PI * 100 * (1 - progress / 100)}`} className="transition-all duration-1000" />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-5xl font-extrabold tracking-tight text-[var(--color-foreground)]">{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</span>
@@ -207,10 +207,10 @@ export default function FocusPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <button onClick={resetTimer} className="w-12 h-12 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors" aria-label="リセット"><RotateCcw size={18} className="text-[var(--color-muted)]" /></button>
-          <button onClick={toggleTimer} className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[var(--shadow-lg)] active:scale-95 transition-transform ${isBreak ? "bg-[var(--color-success)]" : "bg-[var(--color-primary)]"}`} aria-label={isRunning ? "一時停止" : "開始"}>{isRunning ? <Pause size={28} className="text-white" fill="white" /> : <Play size={28} className="text-white ml-1" fill="white" />}</button>
-          <button onClick={switchMode} className="w-12 h-12 rounded-full bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors" aria-label={isBreak ? "集中に戻る" : "休憩する"}><Coffee size={18} className={isBreak ? "text-[var(--color-success)]" : "text-[var(--color-muted)]"} /></button>
+        <div className="flex items-center gap-6">
+          <button onClick={resetTimer} className="w-12 h-12 rounded-full bg-[var(--color-surface)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors" style={{ boxShadow: "var(--shadow-card)" }} aria-label="リセット"><RotateCcw size={18} className="text-[var(--color-muted)]" /></button>
+          <button onClick={toggleTimer} className={`w-[72px] h-[72px] rounded-full flex items-center justify-center active:scale-95 transition-transform ${isBreak ? "bg-[var(--color-success)]" : "bg-gradient-to-b from-[var(--color-primary-light)] to-[var(--color-primary)]"}`} style={{ boxShadow: isBreak ? "0 4px 16px rgba(34,197,94,0.3)" : "0 4px 16px rgba(37,99,235,0.3)" }} aria-label={isRunning ? "一時停止" : "開始"}>{isRunning ? <Pause size={30} className="text-white" fill="white" /> : <Play size={30} className="text-white ml-1" fill="white" />}</button>
+          <button onClick={switchMode} className="w-12 h-12 rounded-full bg-[var(--color-surface)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors" style={{ boxShadow: "var(--shadow-card)" }} aria-label={isBreak ? "集中に戻る" : "休憩する"}><Coffee size={18} className={isBreak ? "text-[var(--color-success)]" : "text-[var(--color-muted)]"} /></button>
         </div>
       </div>
 
@@ -219,7 +219,7 @@ export default function FocusPage() {
           <h3 className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-wider mb-3">チェックリスト ({displaySubtasks.filter((subtask) => subtask.completed).length}/{displaySubtasks.length})</h3>
           <div className="space-y-2">
             {displaySubtasks.map((subtask) => (
-              <button key={subtask.id} onClick={() => toggleSubtask(subtask.id, subtask.completed)} className="flex items-center gap-3 w-full px-3.5 py-2.5 bg-[var(--color-surface)] rounded-[var(--radius-md)] border border-[var(--color-border)] text-left transition-all hover:shadow-[var(--shadow-sm)]">
+              <button key={subtask.id} onClick={() => toggleSubtask(subtask.id, subtask.completed)} className="flex items-center gap-3 w-full px-4 py-3 bg-[var(--color-surface)] rounded-[var(--radius-lg)] text-left transition-all" style={{ boxShadow: "var(--shadow-card)" }}>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${subtask.completed ? "bg-[var(--color-success)] border-[var(--color-success)]" : "border-[var(--color-border)]"}`}>{subtask.completed && <Check size={12} className="text-white" />}</div>
                 <span className={`text-sm ${subtask.completed ? "line-through text-[var(--color-muted)]" : "text-[var(--color-foreground)]"}`}>{subtask.title}</span>
               </button>

@@ -16,7 +16,7 @@ export function OverdueBanner() {
 
   return (
     <Link href="/tasks" className="block">
-      <div className="flex items-center gap-3 px-4 py-3 bg-[var(--color-overdue-bg)] rounded-[var(--radius-lg)] border border-[var(--color-priority-high)]/15 animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
+      <div className="flex items-center gap-3 px-4 py-3.5 bg-[var(--color-overdue-bg)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--color-priority-high)]/10 shrink-0">
           <AlertCircle size={18} className="text-[var(--color-priority-high)]" />
         </div>

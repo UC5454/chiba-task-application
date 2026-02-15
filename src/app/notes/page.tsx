@@ -83,9 +83,9 @@ function NotesContent() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-[var(--color-foreground)] flex items-center gap-2">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)] flex items-center gap-2">
           <StickyNote size={20} className="text-[var(--color-streak)]" />
           メモ
         </h1>
@@ -96,7 +96,7 @@ function NotesContent() {
       </div>
 
       {showNewMemo && (
-        <div className="bg-[var(--color-memo)] rounded-[var(--radius-lg)] border border-[var(--color-streak)]/20 p-4 shadow-[var(--shadow-md)] animate-fade-in-up">
+        <div className="bg-[var(--color-memo)] rounded-[var(--radius-xl)] p-5 animate-fade-in-up" style={{ boxShadow: "var(--shadow-card)" }}>
           <textarea value={newMemoText} onChange={(e) => setNewMemoText(e.target.value)} placeholder="思いついたことを書こう..." className="w-full h-28 bg-transparent text-sm text-[var(--color-foreground)] placeholder:text-[var(--color-muted)] resize-none focus:outline-none leading-relaxed" autoFocus />
           <div className="mt-2 pt-2 border-t border-[var(--color-streak)]/10 space-y-2">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -112,7 +112,7 @@ function NotesContent() {
                   <button type="button" onClick={() => { setShowTagInput(false); setTagInput(""); }} className="text-[10px] text-[var(--color-muted)]">×</button>
                 </form>
               ) : (
-                <button onClick={() => setShowTagInput(true)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[var(--color-muted)] bg-[var(--color-surface)] rounded-full border border-[var(--color-border)] hover:border-[var(--color-streak)] transition-colors">
+                <button onClick={() => setShowTagInput(true)} className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[var(--color-muted)] bg-[var(--color-surface)] rounded-full shadow-[var(--shadow-sm)] hover:border-[var(--color-streak)] transition-colors">
                   <Tag size={10} />
                   タグ追加
                 </button>
@@ -128,19 +128,19 @@ function NotesContent() {
 
       <div className="relative">
         <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="メモを検索..." className="w-full pl-10 pr-4 py-2.5 text-sm bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)] transition-colors" />
+        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="メモを検索..." className="w-full pl-10 pr-4 py-2.5 text-sm bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-sm)] border-none focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        <button onClick={() => setSelectedTag(null)} className={`shrink-0 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors ${!selectedTag ? "bg-[var(--color-streak)] text-white" : "bg-[var(--color-surface)] text-[var(--color-muted)] border border-[var(--color-border)]"}`}>すべて</button>
+        <button onClick={() => setSelectedTag(null)} className={`shrink-0 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors ${!selectedTag ? "bg-[var(--color-streak)] text-white" : "bg-[var(--color-surface)] text-[var(--color-muted)] shadow-[var(--shadow-sm)]"}`}>すべて</button>
         {allTags.map((tag) => (
-          <button key={tag} onClick={() => setSelectedTag(selectedTag === tag ? null : tag)} className={`shrink-0 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors ${selectedTag === tag ? "bg-[var(--color-streak)] text-white" : "bg-[var(--color-surface)] text-[var(--color-muted)] border border-[var(--color-border)]"}`}>#{tag}</button>
+          <button key={tag} onClick={() => setSelectedTag(selectedTag === tag ? null : tag)} className={`shrink-0 px-3 py-1.5 text-[11px] font-medium rounded-full transition-colors ${selectedTag === tag ? "bg-[var(--color-streak)] text-white" : "bg-[var(--color-surface)] text-[var(--color-muted)] shadow-[var(--shadow-sm)]"}`}>#{tag}</button>
         ))}
       </div>
 
       <div className="space-y-3">
         {notes.map((memo, i) => (
-          <div key={memo.id} className="bg-[var(--color-memo)] rounded-[var(--radius-lg)] border border-[var(--color-streak)]/15 p-4 hover:shadow-[var(--shadow-md)] transition-all cursor-pointer animate-fade-in-up" style={{ animationDelay: `${i * 0.05}s` }}>
+          <div key={memo.id} className="bg-[var(--color-memo)] rounded-[var(--radius-xl)] p-4 transition-all cursor-pointer animate-fade-in-up" style={{ animationDelay: `${i * 0.05}s`, boxShadow: "var(--shadow-card)" }}>
             <p className="text-sm text-[var(--color-foreground)] leading-relaxed line-clamp-3">{memo.content}</p>
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center gap-1.5">
@@ -164,7 +164,7 @@ function NotesContent() {
 
 export default function NotesPage() {
   return (
-    <Suspense fallback={<div className="max-w-2xl mx-auto px-4 py-6"><div className="h-8 w-32 bg-[var(--color-surface-hover)] rounded animate-pulse" /></div>}>
+    <Suspense fallback={<div className="max-w-3xl mx-auto px-4 py-8"><div className="h-8 w-32 bg-[var(--color-surface-hover)] rounded animate-pulse" /></div>}>
       <NotesContent />
     </Suspense>
   );

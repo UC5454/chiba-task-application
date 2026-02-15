@@ -55,7 +55,7 @@ export function TodayTasks() {
         </div>
         <div className="space-y-2.5">
           {Array.from({ length: 3 }).map((_, idx) => (
-            <div key={idx} className="animate-pulse flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)]">
+            <div key={idx} className="animate-pulse flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)]">
               <div className="w-1 h-10 rounded-full bg-[var(--color-border-light)]" />
               <div className="w-6 h-6 rounded-full bg-[var(--color-border-light)]" />
               <div className="flex-1 min-w-0 space-y-2">
@@ -86,7 +86,7 @@ export function TodayTasks() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-[var(--color-foreground)]">今日やること</h2>
         </div>
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-6 text-center text-sm text-[var(--color-muted)]">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] px-4 py-6 text-center text-sm text-[var(--color-muted)]">
           データを読み込めませんでした
         </div>
       </section>
@@ -101,7 +101,7 @@ export function TodayTasks() {
       </div>
 
       {tasks.length === 0 ? (
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-8 text-center">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] px-4 py-8 text-center">
           <p className="text-3xl mb-2">🌿</p>
           <p className="text-sm text-[var(--color-muted)]">今日のタスクはまだありません</p>
         </div>
@@ -118,8 +118,8 @@ export function TodayTasks() {
 
 function TaskCard({ task, onComplete }: { task: Task; onComplete: (taskId: string) => void }) {
   return (
-    <div className="group flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-all cursor-pointer active:scale-[0.99]">
-      <div className={`w-1 h-10 rounded-full shrink-0 ${priorityColors[task.priority]}`} />
+    <div className="group flex items-center gap-3 px-4 py-3.5 bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-card-hover)] transition-all cursor-pointer active:scale-[0.99]">
+      <div className={`w-0.5 h-8 rounded-full shrink-0 ${priorityColors[task.priority]}`} />
 
       <button
         className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-[var(--color-border)] hover:border-[var(--color-success)] hover:bg-[var(--color-success)]/10 transition-colors shrink-0 group/check"

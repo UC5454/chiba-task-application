@@ -8,13 +8,13 @@ interface Props {
 
 export function DashboardSegmentControl({ activeTab, onTabChange, reportsBadge }: Props) {
   return (
-    <div className="sticky top-0 z-40 -mx-4 px-4 pt-2 pb-3 bg-[var(--color-background)]/80 backdrop-blur-sm">
-      <div className="flex gap-1 p-1 bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
+    <div className="sticky top-0 z-40 -mx-4 px-4 pt-2 pb-3 glass">
+      <div className="flex gap-1 p-1 bg-[var(--color-surface)] rounded-[var(--radius-lg)]" style={{ boxShadow: "var(--shadow-card)" }}>
         <button
           onClick={() => onTabChange("today")}
           className={`flex-1 py-2.5 text-sm font-medium rounded-[var(--radius-md)] transition-all ${
             activeTab === "today"
-              ? "bg-[var(--color-primary)] text-white shadow-[var(--shadow-sm)]"
+              ? "bg-[var(--color-foreground)] text-white shadow-[var(--shadow-md)]"
               : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]"
           }`}
         >
@@ -24,7 +24,7 @@ export function DashboardSegmentControl({ activeTab, onTabChange, reportsBadge }
           onClick={() => onTabChange("reports")}
           className={`relative flex-1 py-2.5 text-sm font-medium rounded-[var(--radius-md)] transition-all ${
             activeTab === "reports"
-              ? "bg-[var(--color-primary)] text-white shadow-[var(--shadow-sm)]"
+              ? "bg-[var(--color-foreground)] text-white shadow-[var(--shadow-md)]"
               : "text-[var(--color-muted)] hover:text-[var(--color-foreground)]"
           }`}
         >

@@ -21,7 +21,7 @@ export function TodaySchedule() {
             今日のスケジュール
           </h2>
         </div>
-        <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+        <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] shadow-[var(--shadow-sm)] overflow-hidden">
           {Array.from({ length: 3 }).map((_, idx) => (
             <div key={idx} className="animate-pulse flex items-start gap-3 px-4 py-3 border-b border-[var(--color-border-light)] last:border-b-0">
               <div className="w-12 shrink-0 pt-0.5 space-y-2">
@@ -56,7 +56,7 @@ export function TodaySchedule() {
         </h2>
       </div>
 
-      <div className="bg-[var(--color-surface)] rounded-[var(--radius-lg)] border border-[var(--color-border)] shadow-[var(--shadow-sm)] overflow-hidden">
+      <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] shadow-[var(--shadow-sm)] overflow-hidden">
         {events.length === 0 ? (
           <div className="px-4 py-8 text-center">
             <p className="text-3xl mb-2">🗓️</p>
