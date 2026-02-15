@@ -6,11 +6,13 @@ import { useState } from "react";
 import { useSWRConfig } from "swr";
 
 import { InputDialog } from "@/components/ui/InputDialog";
+import { VoiceInputDialog } from "@/components/ui/VoiceInputDialog";
 import { useToast } from "@/components/ui/ToastProvider";
 
 export function QuickActions() {
   const router = useRouter();
   const [quickTaskOpen, setQuickTaskOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
 
@@ -23,7 +25,35 @@ export function QuickActions() {
   };
 
   const handleVoiceInput = () => {
-    toast.info("音声入力は準備中です。いまはテキストで追加してみよう。");
+    setVoiceOpen(true);
+  };
+
+  const submitVoiceTask = async (transcript: string) => {
+    const title = transcript.trim();
+    if (!title) return;
+
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) {
+        const ct = response.headers.get("content-type") ?? "";
+        if (!ct.includes("application/json")) {
+          throw new Error("サーバーに接続できませんでした");
+        }
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "操作に失敗しました");
+      }
+      toast.success(`「${title}」を追加したよ。`);
+      setVoiceOpen(false);
+      mutate("/api/tasks?filter=today");
+      mutate("/api/tasks?filter=all");
+    } catch (error) {
+      console.error(error);
+      toast.error("追加できなかった。もう一度試してみてね。");
+    }
   };
 
   const submitQuickTask = async (values: Record<string, string>) => {
@@ -99,6 +129,12 @@ export function QuickActions() {
           { name: "title", label: "タスク名", placeholder: "タスク名を入力", required: true },
           { name: "dueDate", label: "期限", type: "date" as const },
         ]}
+      />
+
+      <VoiceInputDialog
+        open={voiceOpen}
+        onCancel={() => setVoiceOpen(false)}
+        onSubmit={submitVoiceTask}
       />
     </>
   );
