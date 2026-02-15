@@ -1,11 +1,45 @@
 import { NextResponse } from "next/server";
 
 import { getAccessTokenFromSession } from "@/lib/api-auth";
-import { deleteTask, updateTask } from "@/lib/google-tasks";
+import { deleteTask, getTaskById, updateTask } from "@/lib/google-tasks";
 import { getSupabaseAdminClient } from "@/lib/supabase";
 import type { Category, Priority } from "@/types";
 
 const taskMetadataTable = "task_metadata";
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const accessToken = await getAccessTokenFromSession();
+  if (!accessToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+
+  try {
+    const task = await getTaskById(accessToken, id);
+
+    const googleTaskId = id.includes(":") ? id.split(":")[1] : id;
+    const supabase = getSupabaseAdminClient();
+    const { data: metadata } = await supabase
+      .from(taskMetadataTable)
+      .select("priority, category, assigned_ai_employee, estimated_minutes")
+      .eq("google_task_id", googleTaskId)
+      .single();
+
+    return NextResponse.json({
+      task: {
+        ...task,
+        priority: metadata?.priority ?? task.priority,
+        category: metadata?.category ?? undefined,
+        assignedAiEmployee: metadata?.assigned_ai_employee ?? undefined,
+        estimatedMinutes: metadata?.estimated_minutes ?? undefined,
+      },
+    });
+  } catch (err) {
+    console.error("Task GET error:", err);
+    return NextResponse.json({ error: "タスクの取得に失敗しました" }, { status: 500 });
+  }
+}
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const accessToken = await getAccessTokenFromSession();

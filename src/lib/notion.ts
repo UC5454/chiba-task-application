@@ -96,7 +96,7 @@ export const createMemo = async (content: string, tags: string[] = [], relatedTa
   };
 };
 
-export const listMemos = async (tag?: string, search?: string): Promise<Memo[]> => {
+export const listMemos = async (tag?: string, search?: string, taskId?: string): Promise<Memo[]> => {
   if (!notionToken || !memoDatabaseId) {
     return [];
   }
@@ -109,6 +109,10 @@ export const listMemos = async (tag?: string, search?: string): Promise<Memo[]> 
 
   if (search) {
     filters.push({ property: "Content", title: { contains: search } });
+  }
+
+  if (taskId) {
+    filters.push({ property: "RelatedTaskId", rich_text: { equals: taskId } });
   }
 
   const body: Record<string, unknown> = {

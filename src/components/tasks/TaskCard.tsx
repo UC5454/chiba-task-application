@@ -1,23 +1,16 @@
 "use client";
 
 import confetti from "canvas-confetti";
+import { useRouter } from "next/navigation";
 import { useState, type MouseEvent } from "react";
-import { Check, ChevronDown, ChevronUp, Clock, Pencil, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Clock } from "lucide-react";
 import type { Task, Priority } from "@/types";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { InputDialog } from "@/components/ui/InputDialog";
 import { useToast } from "@/components/ui/ToastProvider";
 
 const priorityColors: Record<Priority, string> = {
   1: "bg-[var(--color-priority-high)]",
   2: "bg-[var(--color-priority-mid)]",
   3: "bg-[var(--color-priority-low)]",
-};
-
-const priorityLabels: Record<Priority, string> = {
-  1: "高",
-  2: "中",
-  3: "低",
 };
 
 const categoryLabels: Record<string, string> = {
@@ -62,16 +55,13 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onChanged }: TaskCardProps) {
-  const [expanded, setExpanded] = useState(false);
   const [completed, setCompleted] = useState(task.completed);
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleComplete = async (e: MouseEvent) => {
     e.stopPropagation();
     if (completed) return;
-    // 楽観的更新: 即座にUIを更新
     setCompleted(true);
     confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
     toast.success("完了したよ！");
@@ -93,77 +83,20 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
     }
   };
 
-  const handleEdit = (e: MouseEvent) => {
-    e.stopPropagation();
-    setEditOpen(true);
-  };
-
-  const handleDelete = (e: MouseEvent) => {
-    e.stopPropagation();
-    setDeleteOpen(true);
-  };
-
-  const submitEdit = async (values: Record<string, string>) => {
-    const title = values.title?.trim();
-    if (!title) {
-      toast.error("タスク名を入力してね。");
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, notes: values.notes?.trim() || undefined }),
-      });
-      if (!response.ok) {
-        const ct = response.headers.get("content-type") ?? "";
-        if (!ct.includes("application/json")) {
-          throw new Error("サーバーに接続できませんでした");
-        }
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "操作に失敗しました");
-      }
-      toast.success("更新したよ。");
-      setEditOpen(false);
-      await onChanged?.();
-    } catch (error) {
-      console.error(error);
-      toast.error("更新できなかった。もう一度試してみてね。");
-    }
-  };
-
-  const confirmDelete = async () => {
-    try {
-      const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
-      if (!response.ok) {
-        const ct = response.headers.get("content-type") ?? "";
-        if (!ct.includes("application/json")) {
-          throw new Error("サーバーに接続できませんでした");
-        }
-        const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "操作に失敗しました");
-      }
-      toast.success("削除したよ。");
-      setDeleteOpen(false);
-      await onChanged?.();
-    } catch (error) {
-      console.error(error);
-      toast.error("削除できなかった。もう一度試してみてね。");
-    }
+  const handleClick = () => {
+    router.push(`/tasks/${encodeURIComponent(task.id)}`);
   };
 
   return (
-    <>
-      <div
-        className={`bg-[var(--color-surface)] rounded-[var(--radius-xl)] overflow-hidden transition-all ${
-          completed ? "opacity-50" : ""
-        }`}
-        style={{ boxShadow: "var(--shadow-card)" }}
-      >
+    <div
+      className={`bg-[var(--color-surface)] rounded-[var(--radius-xl)] overflow-hidden transition-all ${
+        completed ? "opacity-50" : ""
+      }`}
+      style={{ boxShadow: "var(--shadow-card)" }}
+    >
       <div
         className="flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-[var(--color-surface-hover)]"
-        onClick={() => setExpanded(!expanded)}
+        onClick={handleClick}
       >
         <div className={`w-0.5 h-8 rounded-full shrink-0 ${priorityColors[task.priority]}`} />
 
@@ -204,62 +137,8 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
           </div>
         </div>
 
-        {expanded ? <ChevronUp size={16} className="text-[var(--color-muted)] shrink-0" /> : <ChevronDown size={16} className="text-[var(--color-border)] shrink-0" />}
+        <ChevronRight size={16} className="text-[var(--color-border)] shrink-0" />
       </div>
-
-      {expanded && (
-        <div className="px-4 pb-4 pt-0 border-t border-[var(--color-border-light)]">
-          {task.notes && <p className="text-xs text-[var(--color-muted)] mt-3 mb-3 leading-relaxed">{task.notes}</p>}
-          <div className="flex items-center gap-2 mt-3">
-            <span
-              className={`text-[10px] font-medium px-2 py-1 rounded-full ${
-                task.priority === 1
-                  ? "bg-[var(--color-priority-high-bg)] text-[var(--color-priority-high)]"
-                  : task.priority === 2
-                    ? "bg-[var(--color-priority-mid-bg)] text-[var(--color-priority-mid)]"
-                    : "bg-[var(--color-priority-low-bg)] text-[var(--color-priority-low)]"
-              }`}
-            >
-              優先度: {priorityLabels[task.priority]}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mt-3">
-            <button onClick={handleEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/8 rounded-[var(--radius-md)] hover:bg-[var(--color-primary)]/15 transition-colors">
-              <Pencil size={12} />
-              編集
-            </button>
-            <button
-              onClick={handleDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[var(--color-priority-high)] bg-[var(--color-priority-high)]/8 rounded-[var(--radius-md)] hover:bg-[var(--color-priority-high)]/15 transition-colors"
-            >
-              <Trash2 size={12} />
-              削除
-            </button>
-          </div>
-        </div>
-      )}
-      </div>
-
-      <InputDialog
-        open={editOpen}
-        onCancel={() => setEditOpen(false)}
-        onSubmit={submitEdit}
-        title="タスクを編集"
-        fields={[
-          { name: "title", label: "タスク名", defaultValue: task.title, placeholder: "タスク名", required: true },
-          { name: "notes", label: "メモ", defaultValue: task.notes ?? "", placeholder: "メモ（任意）", multiline: true },
-        ]}
-      />
-
-      <ConfirmDialog
-        open={deleteOpen}
-        onCancel={() => setDeleteOpen(false)}
-        onConfirm={confirmDelete}
-        title="タスクを削除しますか？"
-        description={`「${task.title}」を削除します。あとで戻せません。`}
-        confirmLabel="削除する"
-        variant="danger"
-      />
-    </>
+    </div>
   );
 }

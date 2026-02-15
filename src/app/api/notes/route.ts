@@ -18,8 +18,9 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const tag = url.searchParams.get("tag") ?? undefined;
     const search = url.searchParams.get("search") ?? undefined;
+    const taskId = url.searchParams.get("taskId") ?? undefined;
 
-    const notes = await listMemos(tag, search);
+    const notes = await listMemos(tag, search, taskId);
 
     return NextResponse.json({ notes });
   } catch (err) {
