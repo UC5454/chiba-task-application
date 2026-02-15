@@ -138,18 +138,6 @@ export function BottomNav() {
             <Plus size={20} />
             <span>新しいタスク</span>
           </button>
-
-          <Link
-            href="/settings"
-            className={`flex items-center gap-3 px-4 py-3 mt-2 rounded-[var(--radius-md)] transition-colors font-medium text-sm ${
-              pathname.startsWith("/settings")
-                ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
-                : "text-[var(--color-muted)] hover:bg-[var(--color-surface-hover)] hover:text-[var(--color-foreground)]"
-            }`}
-          >
-            <Settings size={20} />
-            <span>設定</span>
-          </Link>
         </nav>
 
         <div className="p-4 m-4 rounded-[var(--radius-lg)] bg-[var(--color-priority-mid-bg)] border border-[var(--color-streak)]/20">
