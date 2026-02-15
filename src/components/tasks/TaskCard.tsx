@@ -84,7 +84,7 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
   };
 
   const handleClick = () => {
-    router.push(`/tasks/${encodeURIComponent(task.id)}`);
+    router.push(`/tasks/${task.id}`);
   };
 
   return (
