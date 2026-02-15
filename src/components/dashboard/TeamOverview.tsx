@@ -132,7 +132,7 @@ export function TeamOverview() {
 
   if (isLoading) {
     return (
-      <section className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
         <div className="animate-pulse bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-4 w-4 rounded bg-[var(--color-border-light)]" />
@@ -158,7 +158,7 @@ export function TeamOverview() {
   const totalBreakdown = Object.values(metrics.toolBreakdown).reduce((s, v) => s + v, 0);
 
   return (
-    <section className="animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
+    <section className="animate-fade-in-up" style={{ animationDelay: "0.05s" }}>
       <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] p-5 border border-[var(--color-border)] shadow-[var(--shadow-sm)]">
         {/* ヘッダー */}
         <div className="flex items-center justify-between mb-4">

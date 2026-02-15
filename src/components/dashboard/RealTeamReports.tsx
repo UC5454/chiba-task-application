@@ -31,7 +31,7 @@ export function RealTeamReports() {
 
   if (isLoading) {
     return (
-      <section className="animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
             <Building2 size={16} className="text-[var(--color-primary)]" />
@@ -55,7 +55,7 @@ export function RealTeamReports() {
 
   if (error) {
     return (
-      <section className="animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
             <Building2 size={16} className="text-[var(--color-primary)]" />
@@ -70,7 +70,7 @@ export function RealTeamReports() {
   }
 
   return (
-    <section className="animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
+    <section className="animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
           <Building2 size={16} className="text-[var(--color-primary)]" />

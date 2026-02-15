@@ -47,7 +47,7 @@ export function TeamStatus() {
 
   if (isLoading) {
     return (
-      <section className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
             <Users size={16} className="text-[var(--color-primary)]" />
@@ -63,7 +63,7 @@ export function TeamStatus() {
 
   if (error) {
     return (
-      <section className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+      <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
             <Users size={16} className="text-[var(--color-primary)]" />
@@ -78,7 +78,7 @@ export function TeamStatus() {
   }
 
   return (
-    <section className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+    <section className="animate-fade-in-up" style={{ animationDelay: "0.15s" }}>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-base font-bold text-[var(--color-foreground)] flex items-center gap-2">
           <Users size={16} className="text-[var(--color-primary)]" />
