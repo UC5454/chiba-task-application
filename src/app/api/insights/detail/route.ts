@@ -14,7 +14,7 @@ type GeminiResponse = {
   }>;
 };
 
-type MetricType = "weekly" | "completion" | "daily";
+type MetricType = "weekly" | "completion" | "daily" | "focus";
 
 type RequestBody = {
   metric: MetricType;
@@ -29,6 +29,12 @@ type RequestBody = {
     priorityBreakdown: Record<string, number>;
     dailyCompletions: Array<{ date: string; count: number }>;
     averagePerDay: number;
+    focusStats?: {
+      totalFocusMinutes: number;
+      sessionCount: number;
+      averageSessionMinutes: number;
+      dailyFocusMinutes: Array<{ date: string; minutes: number }>;
+    };
   };
 };
 
@@ -113,6 +119,36 @@ ${dailyDetail}`;
 - 直近7日:
 ${dailyDetail}`;
   },
+
+  focus: (data) => {
+    const fs = data.focusStats;
+    if (!fs) return "集中データがありません。";
+
+    const dailyDetail = fs.dailyFocusMinutes
+      .map((d) => {
+        const date = new Date(d.date + "T00:00:00");
+        return `${date.getMonth() + 1}/${date.getDate()}(${date.toLocaleDateString("ja-JP", { weekday: "short" })}): ${d.minutes}分`;
+      })
+      .join("\n");
+
+    return `あなたはADHD特性を持つユーザーのタスク管理アプリのAIコーチです。
+「集中時間（フォーカスセッション）」について詳しく分析してください。
+
+ルール:
+- 日本語でフランクに（「〜だね」「〜じゃん」「〜かも」等）
+- 3〜4文で書く
+- 具体的な数字に触れる
+- ADHDの特性（過集中の活用、短いセッションの積み重ね、アイドリング手法の効果等）を踏まえた分析
+- 励ましを含める
+- 集中時間が少なくても責めない。少しでも集中できたことを褒める
+
+データ:
+- 今週の合計集中時間: ${fs.totalFocusMinutes}分
+- セッション数: ${fs.sessionCount}回
+- 平均セッション時間: ${fs.averageSessionMinutes}分
+- 直近7日間の日別:
+${dailyDetail}`;
+  },
 };
 
 export async function POST(request: Request) {
@@ -129,7 +165,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
     const { metric, data } = body;
 
-    if (!metric || !data || !["weekly", "completion", "daily"].includes(metric)) {
+    if (!metric || !data || !["weekly", "completion", "daily", "focus"].includes(metric)) {
       return NextResponse.json({ error: "不正なリクエスト" }, { status: 400 });
     }
 

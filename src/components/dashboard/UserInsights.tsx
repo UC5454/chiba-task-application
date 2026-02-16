@@ -3,10 +3,11 @@
 import { useState, useCallback } from "react";
 import {
   BarChart3, TrendingDown, TrendingUp, Minus, Target, Zap, FolderOpen, Sparkles,
-  X, Loader2,
+  X, Loader2, Timer,
 } from "lucide-react";
 
 import { useInsights } from "@/hooks/useInsights";
+import { useFocusStats } from "@/hooks/useFocusStats";
 import type { InsightsResponse } from "@/app/api/insights/route";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -27,10 +28,11 @@ const CATEGORY_COLORS: Record<string, string> = {
   未分類: "var(--color-muted)",
 };
 
-type MetricType = "weekly" | "completion" | "daily";
+type MetricType = "weekly" | "completion" | "daily" | "focus";
 
 export function UserInsights() {
   const { insights, isLoading } = useInsights();
+  const { focusStats } = useFocusStats();
   const [activeDetail, setActiveDetail] = useState<MetricType | null>(null);
   const [detailAnalysis, setDetailAnalysis] = useState<Record<string, string>>({});
   const [detailLoading, setDetailLoading] = useState<string | null>(null);
@@ -64,10 +66,37 @@ export function UserInsights() {
       return;
     }
     setActiveDetail(metric);
-    if (insights) {
+    if (metric !== "focus" && insights) {
       fetchDetail(metric, insights);
     }
-  }, [activeDetail, insights, fetchDetail]);
+    if (metric === "focus" && focusStats) {
+      // Fetch focus analysis via detail endpoint
+      const focusData = {
+        totalActive: 0, totalCompleted: 0, completionRate: 0,
+        thisWeekCompleted: 0, lastWeekCompleted: 0, weeklyChange: 0,
+        categoryBreakdown: {}, priorityBreakdown: {},
+        dailyCompletions: [], averagePerDay: 0,
+        // focus-specific data encoded in the data object
+        focusStats: focusStats,
+      };
+      if (!detailAnalysis["focus"]) {
+        setDetailLoading("focus");
+        fetch("/api/insights/detail", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ metric: "focus", data: focusData }),
+        })
+          .then((r) => r.ok ? r.json() as Promise<{ analysis: string | null }> : null)
+          .then((result) => {
+            if (result?.analysis) {
+              setDetailAnalysis((prev) => ({ ...prev, focus: result.analysis as string }));
+            }
+          })
+          .catch(() => {})
+          .finally(() => setDetailLoading(null));
+      }
+    }
+  }, [activeDetail, insights, focusStats, fetchDetail, detailAnalysis]);
 
   if (isLoading) {
     return (
@@ -193,6 +222,52 @@ export function UserInsights() {
           </button>
         </div>
 
+        {/* 集中時間カード */}
+        {focusStats && focusStats.sessionCount > 0 && (
+          <button
+            onClick={() => handleCardClick("focus")}
+            className={`w-full mb-4 bg-[var(--color-surface-hover)] rounded-[var(--radius-lg)] p-3 transition-all ${
+              activeDetail === "focus" ? "ring-2 ring-[var(--color-primary)] ring-offset-1" : ""
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Timer size={14} className="text-orange-500" />
+                <span className="text-xs font-bold text-[var(--color-foreground)]">今週の集中時間</span>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] text-[var(--color-muted)]">
+                <span>{focusStats.sessionCount}セッション</span>
+                <span>平均{focusStats.averageSessionMinutes}分</span>
+              </div>
+            </div>
+            <div className="mt-2 flex items-end gap-1 h-8">
+              {focusStats.dailyFocusMinutes.map((d) => {
+                const maxMin = Math.max(...focusStats.dailyFocusMinutes.map((x) => x.minutes), 1);
+                const height = Math.max((d.minutes / maxMin) * 100, 4);
+                const dayLabel = new Date(d.date + "T00:00:00").toLocaleDateString("ja-JP", { weekday: "short" });
+                return (
+                  <div key={d.date} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div className="w-full flex items-end justify-center" style={{ height: "24px" }}>
+                      <div
+                        className="w-full max-w-[20px] rounded-t-sm"
+                        style={{
+                          height: `${height}%`,
+                          backgroundColor: d.minutes > 0 ? "#F97316" : "var(--color-border-light)",
+                          opacity: d.minutes > 0 ? 1 : 0.4,
+                        }}
+                      />
+                    </div>
+                    <span className="text-[7px] text-[var(--color-muted)]">{dayLabel}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-lg font-extrabold text-[var(--color-foreground)] text-center">
+              {focusStats.totalFocusMinutes}<span className="text-xs font-normal text-[var(--color-muted)]">分</span>
+            </p>
+          </button>
+        )}
+
         {/* 詳細パネル */}
         {activeDetail && (
           <div className="mb-4 p-4 bg-[var(--color-surface-hover)] rounded-[var(--radius-lg)] border border-[var(--color-border-light)] animate-fade-in-up">
@@ -201,6 +276,7 @@ export function UserInsights() {
                 {activeDetail === "weekly" && "週次レポート"}
                 {activeDetail === "completion" && "完了率の詳細"}
                 {activeDetail === "daily" && "日別パフォーマンス"}
+                {activeDetail === "focus" && "集中時間の詳細"}
               </h4>
               <button onClick={() => setActiveDetail(null)} className="p-1 rounded-full hover:bg-[var(--color-border-light)] transition-colors">
                 <X size={14} className="text-[var(--color-muted)]" />
@@ -351,6 +427,42 @@ export function UserInsights() {
                 <div className="flex items-center gap-3 pt-1 text-[10px] text-[var(--color-muted)]">
                   <span>平均: <strong className="text-[var(--color-foreground)]">{averagePerDay}件/日</strong></span>
                   <span>最高: <strong className="text-[var(--color-foreground)]">{maxDaily}件</strong></span>
+                </div>
+              </div>
+            )}
+
+            {/* 集中時間: 日別詳細 */}
+            {activeDetail === "focus" && focusStats && (
+              <div className="space-y-3">
+                <p className="text-[10px] text-[var(--color-muted)]">直近7日間の日別集中時間</p>
+                <div className="space-y-1">
+                  {focusStats.dailyFocusMinutes.map((d) => {
+                    const date = new Date(d.date + "T00:00:00");
+                    const dayLabel = `${date.getMonth() + 1}/${date.getDate()}(${date.toLocaleDateString("ja-JP", { weekday: "short" })})`;
+                    const maxMin = Math.max(...focusStats.dailyFocusMinutes.map((x) => x.minutes), 1);
+                    const pct = maxMin > 0 ? Math.round((d.minutes / maxMin) * 100) : 0;
+                    return (
+                      <div key={d.date} className="flex items-center gap-2">
+                        <span className="text-[9px] text-[var(--color-muted)] w-16">{dayLabel}</span>
+                        <div className="flex-1 h-2 bg-[var(--color-border-light)] rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.max(pct, 2)}%`,
+                              backgroundColor: d.minutes > 0 ? "#F97316" : "transparent",
+                            }}
+                          />
+                        </div>
+                        <span className="text-[9px] font-bold text-[var(--color-foreground)] w-10 text-right">{d.minutes}分</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center gap-3 pt-1 text-[10px] text-[var(--color-muted)]">
+                  <span>合計: <strong className="text-[var(--color-foreground)]">{focusStats.totalFocusMinutes}分</strong></span>
+                  <span>セッション: <strong className="text-[var(--color-foreground)]">{focusStats.sessionCount}回</strong></span>
+                  <span>平均: <strong className="text-[var(--color-foreground)]">{focusStats.averageSessionMinutes}分</strong></span>
                 </div>
               </div>
             )}

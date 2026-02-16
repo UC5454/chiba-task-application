@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Play, Pause, RotateCcw, ChevronRight, Coffee, Monitor, Droplets, ArrowLeft } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronRight, Coffee, Monitor, Droplets, ArrowLeft, ChevronDown, PenLine, Check } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
 import { useSettings } from "@/hooks/useSettings";
 import { useTasks } from "@/hooks/useTasks";
@@ -22,15 +23,34 @@ const formatTime = (seconds: number) => {
 export default function FocusPage() {
   const { tasks } = useTasks("today");
   const { settings } = useSettings();
+  const { data: authSession } = useSession();
   void settings;
 
-  const focusTask = useMemo(() => tasks.find((task) => !task.completed) ?? tasks[0], [tasks]);
+  const autoFocusTask = useMemo(() => tasks.find((task) => !task.completed) ?? tasks[0], [tasks]);
+
+  // Task selection state
+  const [selectedTask, setSelectedTask] = useState<{ title: string; googleTaskId?: string } | null>(null);
+  const [showSelector, setShowSelector] = useState(false);
+  const [customTitle, setCustomTitle] = useState("");
+
+  // The effective focus task: user-selected or auto-selected
+  const focusTask = selectedTask ?? (autoFocusTask ? { title: autoFocusTask.title, googleTaskId: autoFocusTask.googleTaskId } : null);
+
+  // Focus session tracking
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
   const [state, setState] = useState<FocusState>("idle");
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [workingStartedAt, setWorkingStartedAt] = useState<number | null>(null);
   const [lastWorkDuration, setLastWorkDuration] = useState(0);
   const [showOverfocusAlert, setShowOverfocusAlert] = useState(false);
+
+  // Keep ref in sync for sendBeacon cleanup
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   // iOS Safari対策: ユーザータップ時にAudioContextを作成・resume して保持
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -82,6 +102,67 @@ export default function FocusPage() {
     }
   }, []);
 
+  // --- Session tracking helpers ---
+  const startSession = useCallback(async () => {
+    if (!focusTask) return;
+    try {
+      const res = await fetch("/api/focus-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_title: focusTask.title,
+          google_task_id: focusTask.googleTaskId,
+        }),
+      });
+      if (res.ok) {
+        const { id } = (await res.json()) as { id: string };
+        setSessionId(id);
+      }
+    } catch {
+      // Session tracking is best-effort
+    }
+  }, [focusTask]);
+
+  const trackStateChange = useCallback(async (newState: string) => {
+    if (!sessionIdRef.current) return;
+    try {
+      await fetch(`/api/focus-sessions/${sessionIdRef.current}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state: newState }),
+      });
+    } catch {
+      // best-effort
+    }
+  }, []);
+
+  const endSession = useCallback(async () => {
+    if (!sessionIdRef.current) return;
+    try {
+      await fetch(`/api/focus-sessions/${sessionIdRef.current}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ end: true }),
+      });
+    } catch {
+      // best-effort
+    }
+    setSessionId(null);
+  }, []);
+
+  // sendBeacon on page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      if (!sessionIdRef.current || !authSession?.user?.email) return;
+      const url = `/api/focus-sessions/${sessionIdRef.current}`;
+      const body = JSON.stringify({ user_email: authSession.user.email });
+      navigator.sendBeacon(url, body);
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [authSession?.user?.email]);
+
   const startIdling = useCallback(() => {
     setState("idling");
     setTimerSeconds(IDLING_SECONDS);
@@ -93,13 +174,15 @@ export default function FocusPage() {
     setTimerSeconds(0);
     setIsRunning(true);
     setWorkingStartedAt(Date.now());
-  }, []);
+    trackStateChange("working");
+  }, [trackStateChange]);
 
   const startIdlingBreak = useCallback(() => {
     setState("idling_break");
     setTimerSeconds(IDLING_BREAK_SECONDS);
     setIsRunning(true);
-  }, []);
+    trackStateChange("idling_break");
+  }, [trackStateChange]);
 
   const startWorkBreak = useCallback((workedSeconds: number) => {
     setLastWorkDuration(workedSeconds);
@@ -107,7 +190,8 @@ export default function FocusPage() {
     setTimerSeconds(WORK_BREAK_SECONDS);
     setIsRunning(true);
     setWorkingStartedAt(null);
-  }, []);
+    trackStateChange("work_break");
+  }, [trackStateChange]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -118,6 +202,7 @@ export default function FocusPage() {
           if (prev <= 1) {
             playTimerSound();
             setState("idling_done");
+            trackStateChange("idling_done");
             return 0;
           }
           return prev - 1;
@@ -127,6 +212,7 @@ export default function FocusPage() {
           if (prev <= 1) {
             playTimerSound();
             setState("idling");
+            trackStateChange("idling");
             return IDLING_SECONDS;
           }
           return prev - 1;
@@ -136,6 +222,7 @@ export default function FocusPage() {
           if (prev <= 1) {
             playTimerSound();
             setState("idling");
+            trackStateChange("idling");
             return IDLING_SECONDS;
           }
           return prev - 1;
@@ -150,7 +237,7 @@ export default function FocusPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning, state, playTimerSound]);
+  }, [isRunning, state, playTimerSound, trackStateChange]);
 
   // AudioContext cleanup on unmount
   useEffect(() => {
@@ -174,23 +261,26 @@ export default function FocusPage() {
     ensureAudioContext();
     if (state === "idle") {
       startIdling();
+      startSession();
       return;
     }
 
     setIsRunning((prev) => !prev);
-  }, [state, ensureAudioContext, startIdling]);
+  }, [state, ensureAudioContext, startIdling, startSession]);
 
   const resetTimer = useCallback(() => {
     setIsRunning(false);
     setState("idle");
     setTimerSeconds(0);
     setWorkingStartedAt(null);
-  }, []);
+    endSession();
+  }, [endSession]);
 
   const skipPhase = useCallback(() => {
     ensureAudioContext();
     if (state === "idle") {
       startIdling();
+      startSession();
       return;
     }
 
@@ -198,6 +288,7 @@ export default function FocusPage() {
       setState("idling_done");
       setTimerSeconds(0);
       setIsRunning(true);
+      trackStateChange("idling_done");
       return;
     }
 
@@ -213,8 +304,9 @@ export default function FocusPage() {
 
     if (state === "work_break" || state === "idling_break") {
       startIdling();
+      trackStateChange("idling");
     }
-  }, [state, timerSeconds, ensureAudioContext, startIdling, startWorking, startWorkBreak]);
+  }, [state, timerSeconds, ensureAudioContext, startIdling, startWorking, startWorkBreak, startSession, trackStateChange]);
 
   const chooseContinue = useCallback(() => {
     ensureAudioContext();
@@ -225,6 +317,20 @@ export default function FocusPage() {
     ensureAudioContext();
     startIdlingBreak();
   }, [ensureAudioContext, startIdlingBreak]);
+
+  // Task selector handlers
+  const selectTask = useCallback((task: { title: string; googleTaskId?: string }) => {
+    setSelectedTask(task);
+    setShowSelector(false);
+    setCustomTitle("");
+  }, []);
+
+  const selectCustomTitle = useCallback(() => {
+    if (!customTitle.trim()) return;
+    setSelectedTask({ title: customTitle.trim() });
+    setShowSelector(false);
+    setCustomTitle("");
+  }, [customTitle]);
 
   const progress = useMemo(() => {
     if (state === "idling") return ((IDLING_SECONDS - timerSeconds) / IDLING_SECONDS) * 100;
@@ -270,6 +376,8 @@ export default function FocusPage() {
     return `お疲れ様でした！先ほどの作業時間は${formatTime(lastWorkDuration)}でした！\n5分間の休憩です。（中央のボタンでスキップ可能）\nSNSを見ると次動くのが大変なのでストレッチやコーヒー、軽い掃除などがお勧めですよ！`;
   }, [state, lastWorkDuration]);
 
+  const incompleteTasks = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
+
   return (
     <div className="max-w-lg mx-auto px-4 py-8 min-h-dvh flex flex-col">
       <div className="flex items-center gap-3 mb-10">
@@ -294,9 +402,63 @@ export default function FocusPage() {
         </div>
       )}
 
+      {/* Task selector area */}
       <div className="text-center mb-8 animate-fade-in-up">
         <p className="text-xs text-[var(--color-muted)] mb-1">今集中していること</p>
-        <h2 className="text-xl font-bold text-[var(--color-foreground)]">{focusTask?.title ?? "今日のタスクを選んで集中しよう"}</h2>
+        {state === "idle" ? (
+          <>
+            <button
+              onClick={() => setShowSelector((prev) => !prev)}
+              className="inline-flex items-center gap-1.5 text-xl font-bold text-[var(--color-foreground)] hover:text-[var(--color-primary)] transition-colors"
+            >
+              <span>{focusTask?.title ?? "タスクを選んで集中しよう"}</span>
+              <ChevronDown size={18} className={`text-[var(--color-muted)] transition-transform ${showSelector ? "rotate-180" : ""}`} />
+            </button>
+
+            {showSelector && (
+              <div className="mt-3 mx-auto max-w-sm bg-[var(--color-surface)] rounded-[var(--radius-xl)] border border-[var(--color-border-light)] overflow-hidden animate-fade-in-up" style={{ boxShadow: "var(--shadow-card)" }}>
+                {/* Custom title input */}
+                <div className="p-3 border-b border-[var(--color-border-light)]">
+                  <div className="flex items-center gap-2">
+                    <PenLine size={14} className="text-[var(--color-muted)] shrink-0" />
+                    <input
+                      type="text"
+                      value={customTitle}
+                      onChange={(e) => setCustomTitle(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") selectCustomTitle(); }}
+                      placeholder="自由入力..."
+                      className="flex-1 text-sm bg-transparent outline-none text-[var(--color-foreground)] placeholder:text-[var(--color-muted)]"
+                    />
+                    {customTitle.trim() && (
+                      <button onClick={selectCustomTitle} className="p-1 rounded-full bg-[var(--color-primary)] text-white">
+                        <Check size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Task list */}
+                <div className="max-h-48 overflow-y-auto">
+                  {incompleteTasks.length === 0 ? (
+                    <p className="p-3 text-xs text-[var(--color-muted)] text-center">今日のタスクはありません</p>
+                  ) : (
+                    incompleteTasks.map((task) => (
+                      <button
+                        key={task.id}
+                        onClick={() => selectTask({ title: task.title, googleTaskId: task.googleTaskId })}
+                        className="w-full text-left px-4 py-2.5 text-sm text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)] transition-colors border-b border-[var(--color-border-light)] last:border-b-0"
+                      >
+                        {task.title}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <h2 className="text-xl font-bold text-[var(--color-foreground)]">{focusTask?.title ?? "今日のタスクを選んで集中しよう"}</h2>
+        )}
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
