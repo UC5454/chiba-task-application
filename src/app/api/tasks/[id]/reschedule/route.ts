@@ -4,24 +4,26 @@ import { getAccessTokenFromSession } from "@/lib/api-auth";
 import { updateTask } from "@/lib/google-tasks";
 
 const toDateByPreset = (preset: string) => {
-  const base = new Date();
+  // JST基準で日付を計算
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const base = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()));
 
   if (preset === "today") {
-    base.setHours(23, 59, 59, 0);
+    base.setUTCHours(23, 59, 59, 0);
     return base.toISOString();
   }
 
   if (preset === "tomorrow") {
-    base.setDate(base.getDate() + 1);
-    base.setHours(23, 59, 59, 0);
+    base.setUTCDate(base.getUTCDate() + 1);
+    base.setUTCHours(23, 59, 59, 0);
     return base.toISOString();
   }
 
   if (preset === "this_week") {
-    const day = base.getDay();
+    const day = jstNow.getUTCDay();
     const diffToSunday = (7 - day) % 7;
-    base.setDate(base.getDate() + diffToSunday);
-    base.setHours(23, 59, 59, 0);
+    base.setUTCDate(base.getUTCDate() + diffToSunday);
+    base.setUTCHours(23, 59, 59, 0);
     return base.toISOString();
   }
 

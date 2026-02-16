@@ -75,7 +75,8 @@ export async function GET(
 
   const { email } = await params;
   const decodedEmail = decodeURIComponent(email);
-  const date = request.nextUrl.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const date = request.nextUrl.searchParams.get("date") ?? jstNow.toISOString().slice(0, 10);
 
   try {
     // 指定日の全日報を取得して、メールでフィルタ

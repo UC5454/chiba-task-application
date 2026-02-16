@@ -16,8 +16,9 @@ type TaskMetadataRow = {
 const taskMetadataTable = "task_metadata";
 
 const isTodayDate = (date: Date) => {
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
+  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  return jstDate.getUTCFullYear() === jstNow.getUTCFullYear() && jstDate.getUTCMonth() === jstNow.getUTCMonth() && jstDate.getUTCDate() === jstNow.getUTCDate();
 };
 
 const mergeWithMetadata = (tasks: Task[], metadataRows: TaskMetadataRow[]) => {
@@ -103,15 +104,13 @@ export async function GET(request: Request) {
     const filtered = filterTasks(merged, filter);
 
     if (filter === "completed") {
-      const now = new Date();
-      const todayStart = new Date(now);
-      todayStart.setHours(0, 0, 0, 0);
+      const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const todayStart = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()) - 9 * 60 * 60 * 1000);
       const todayCount = filtered.filter(
         (t) => t.completedAt && new Date(t.completedAt).getTime() >= todayStart.getTime(),
       ).length;
-      const weekStart = new Date(now);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      weekStart.setHours(0, 0, 0, 0);
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(weekStart.getDate() - jstNow.getUTCDay());
       const thisWeekCount = filtered.filter(
         (t) => t.completedAt && new Date(t.completedAt).getTime() >= weekStart.getTime(),
       ).length;
