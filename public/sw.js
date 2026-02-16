@@ -1,4 +1,4 @@
-const CACHE_NAME = "sou-task-static-v2";
+const CACHE_NAME = "sou-task-static-v3";
 const STATIC_ASSETS = [
   "/manifest.json",
   "/icons/icon-192.svg",
@@ -21,6 +21,46 @@ self.addEventListener("activate", (event) => {
     ),
   );
   self.clients.claim();
+});
+
+// Push notification handler
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "SOU Task", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "SOU Task";
+  const options = {
+    body: data.body || "",
+    icon: data.icon || "/icons/icon-192.svg",
+    badge: data.badge || "/icons/icon-192.svg",
+    data: data.data || { url: "/" },
+    tag: data.tag || "sou-task-reminder",
+    renotify: true,
+    requireInteraction: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification click handler — open the app
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (new URL(client.url).pathname === url && "focus" in client) {
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
 });
 
 self.addEventListener("fetch", (event) => {

@@ -24,7 +24,7 @@ const postSlack = async (reminder: Reminder) => {
   const webhook = process.env.SLACK_WEBHOOK_URL;
   if (!webhook) return;
 
-  const emoji = reminder.type.startsWith("overdue") ? ":warning:" : ":bell:";
+  const emoji = reminder.type.startsWith("overdue") ? ":warning:" : reminder.taskId === "__summary__" ? ":clipboard:" : ":bell:";
   const typeLabel: Record<string, string> = {
     due_tomorrow: "明日が期限",
     due_today: "今日が期限",
@@ -88,33 +88,44 @@ export async function GET(request: Request) {
     autoReleaseDays: settings?.auto_release_days,
   });
 
-  let sentCount = 0;
+  let pushSentCount = 0;
+  let slackSentCount = 0;
   const slackEnabled = settings?.slack_notify_enabled ?? true;
 
   for (const reminder of reminders) {
-    const message = reminder.message;
-
+    // Push notification
     for (const sub of subscriptions) {
-      const result = await sendPushNotification(
-        {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.keys_p256dh,
-            auth: sub.keys_auth,
+      try {
+        const result = await sendPushNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.keys_p256dh,
+              auth: sub.keys_auth,
+            },
           },
-        },
-        message,
-      );
+          reminder.message,
+        );
 
-      if (result.sent) {
-        sentCount += 1;
+        if (result.sent) {
+          pushSentCount += 1;
+        }
+      } catch {
+        // Individual push failure shouldn't stop others
       }
     }
 
+    // Slack notification
     if (slackEnabled) {
       await postSlack(reminder);
+      slackSentCount += 1;
     }
   }
 
-  return NextResponse.json({ checkedTasks: tasks.length, reminders: reminders.length, sentCount });
+  return NextResponse.json({
+    checkedTasks: tasks.length,
+    reminders: reminders.length,
+    pushSentCount,
+    slackSentCount,
+  });
 }
