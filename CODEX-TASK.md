@@ -1,80 +1,106 @@
-# UI修正: 未実装ボタン・データ表示問題・パス不一致の一括修正
+# CODEX-TASK: 集中モードを「アイドリング方式」に全面リニューアル
 
 ## 概要
 
-デプロイ後の動作確認で、UIのボタンが全て未実装（onClickハンドラなし）であること、ダッシュボードのデータ表示に問題があることが判明。本Issueで一括修正する。
+`src/app/focus/page.tsx` の既存ポモドーロタイマー（25分カウントダウン方式）を、
+ADHD向け「アイドリング方式」タイマーに全面書き換える。
 
-## 修正項目
+コンセプト: **「まず1分だけ」のハードルの低さで動き出しを促し、乗ってきたら自由に作業を続ける。**
 
-### 1. ボタンのonClickハンドラ実装（最優先）
+## ステートマシン（6状態）
 
-全て見た目だけ作られており、クリックしても何も起きない。
+```
+idle → idling → idling_done → working → work_break → idling（ループ）
+                    ↓
+              idling_break → idling（ループ）
+```
 
-| ファイル | ボタン | 期待する動作 |
-|---------|--------|------------|
-| `src/components/dashboard/QuickActions.tsx` | 「タスクを追加...」 | `window.prompt` でタスク名入力 → `POST /api/tasks` で追加 → SWR mutate |
-| `src/components/dashboard/QuickActions.tsx` | 「メモを追加」 | `router.push("/notes")` で遷移（メモページのaddモードを活用） |
-| `src/components/dashboard/QuickActions.tsx` | 「音声で入力」 | 未対応なら `disabled` 属性追加 + ツールチップ「準備中」表示。対応するなら Web Speech API |
-| `src/components/layout/BottomNav.tsx` 中央「+」ボタン | モバイル中央ボタン | `window.prompt` でタスク名入力 → `POST /api/tasks` で追加。現在 `href="#add"` で何もしない |
-| `src/components/layout/BottomNav.tsx` サイドバー「新しいタスク」 | PC用サイドバーボタン | 同上のタスク追加処理 |
-| `src/components/tasks/TaskCard.tsx` L128 | 「編集」ボタン | タスク編集モーダル or inline編集（タイトル・期限・優先度の `PATCH /api/tasks/:id`） |
+| State | 表示名 | タイマー | リングの色 | 説明 |
+|-------|--------|---------|-----------|------|
+| `idle` | 待機中... | 00:00（停止） | グレー（薄い） | 初期状態。Playボタンで開始 |
+| `idling` | アイドリング中... | 1分カウントダウン（60→0） | オレンジ（進行に応じて塗られる） | 1分だけのウォームアップ |
+| `idling_done` | （選択中） | 経過時間をカウントアップ | オレンジ（フル） | 1分経過後。「続行」or「休憩」を選択 |
+| `idling_break` | アイドリング休憩 | 1分カウントダウン（60→0） | ブルー | 休憩後、再びidlingへ |
+| `working` | 作業中 | カウントアップ（00:00→上へ） | オレンジ（フル） | 自由作業。スキップで休憩へ |
+| `work_break` | 休憩中 | 5分カウントダウン（300→0） | ブルー | 作業時間を表示。終了後idlingへ |
 
-**実装方針**: QuickActions と BottomNav はタスク追加用のカスタムフック `useQuickAddTask()` を共通化すると良い。`POST /api/tasks` → `mutate("/api/tasks?filter=today")` + `mutate("/api/tasks?filter=all")` でSWRキャッシュを更新する。
+## 遷移フロー詳細
 
-### 2. ダッシュボードのデータ表示修正
+1. **idle → idling**: Playボタン押下
+2. **idling（1分経過）→ idling_done**: 自動遷移（タイマー音あり）
+3. **idling_done → working**: 「続行」ボタン押下
+4. **idling_done → idling_break**: 「休憩」ボタン押下
+5. **idling_break（1分経過）→ idling**: 自動遷移（タイマー音あり）、自動で再スタート
+6. **working → work_break**: スキップ（>）ボタン押下。作業時間を記録
+7. **work_break（5分経過）→ idling**: 自動遷移（タイマー音あり）、自動で再スタート
 
-#### 2a. タスク表示フィルタ問題
-- **現状**: `GreetingHeader` と `TodayTasks` が `useTasks("today")` を使用。`today` フィルタは `dueDate` が今日のタスクのみ表示する
-- **問題**: 期限未設定のタスクが全く表示されない → 「タスク0件」になる
-- **修正**: `src/app/api/tasks/route.ts` の `filterTasks` 関数で、`filter === "today"` の時に期限未設定タスクも含める。または `GreetingHeader` は `useTasks("all")` を使い、「全タスク X件」と表示する
+## UI仕様
 
-#### 2b. 空状態UIの改善
-- `src/components/dashboard/TodayTasks.tsx`: タスク0件時に「タスクを追加しよう」と誘導するUI追加
-- `src/components/dashboard/TodaySchedule.tsx`: 予定0件時に「今日の予定はなし。集中できる日！」的な表示追加
+### レイアウト（上から順）
 
-### 3. `src/lib/github.ts` のパス不一致修正
+1. **ヘッダー**: 「← 集中モード」（既存の戻るリンク維持）
+2. **タスク表示**: 現在のフォーカスタスク名（既存ロジック維持）
+3. **円形タイマー**:
+   - 直径: w-64 h-64
+   - 外周リング: strokeWidth 6px
+   - リング色: オレンジ（`#F97316` = Tailwind orange-500）で作業系、ブルー（`#3B82F6` = Tailwind blue-500）で休憩系
+   - 背景リング: 薄いオレンジ or 薄いブルー（state に応じる）
+   - 中央: 時間表示（text-5xl font-extrabold） + ステータスラベル（text-xs、色付き）
+4. **コントロールボタン**（横並び3つ）:
+   - Play/Pause: 72x72 オレンジ丸ボタン（bg-orange-500）
+   - スキップ（>）: 48x48（ChevronRight アイコン）。次のフェーズへ進む
+   - リセット（↺）: 48x48（RotateCcw アイコン）。idleに戻す
+5. **メッセージカード**: 状態に応じたガイドテキスト（角丸カード内、bg-surface）
+6. **選択カード**（idling_done時のみ表示）:
+   - 「続行」カード: オレンジ背景（bg-orange-500 text-white）、アイコン + 説明テキスト
+   - 「休憩」カード: 白背景（border）、コーヒーアイコン + 説明テキスト
+   - 横並び2カラム（grid grid-cols-2 gap-3）
 
-`EMPLOYEES` 配列（L7-21）のパスが実際のリポジトリ構造と一致していない。
+### 各ステートのメッセージ
 
-**修正対応表**:
+| State | メッセージ |
+|-------|---------|
+| `idle` | まずは1分間だけのアイドリング作業を始めましょう！\n1分だけ作業した後は休憩もできるのでまずは1分！ |
+| `idling` | アイドリング作業を1分だけ頑張りましょう...\n終了後にこのまま作業を続けるか休憩するかを選べます。\n（中央のスキップボタンで今すぐ選択可能） |
+| `idling_done` | アイドリング作業が終了しました。\nこのまま作業を継続するか一度休憩するかを選んでください。 |
+| `idling_break` | 1分の休憩を取りましょう。\n休憩終了後に再度1分間のアイドリング作業を行います。 |
+| `working` | ナイス継続です！この調子で気の向くまで存分に作業を実施しましょう。\n中央のスキップボタンを押すと休憩に入ることができます。 |
+| `work_break` | お疲れ様でした！先ほどの作業時間は{MM:SS}でした！\n5分間の休憩です。（中央のボタンでスキップ可能）\nSNSを見ると次動くのが大変なのでストレッチやコーヒー、軽い掃除などがお勧めですよ！ |
 
-| 現在のコード | 正しいパス |
-|------------|-----------|
-| `"神崎凛"` | `"リン_executive_COO"` |
-| `"secretary/白波瀬みなみ"` | `"ミナミ_secretary_エグゼクティブ秘書"` |
-| `"note-team/水瀬ことは"` | `"note-team/コトハ_note-team_リサーチャー"` |
-| `"note-team/朝日つむぎ"` | `"note-team/ツムギ_note-team_ライター"` |
-| `"note-team/橘そら"` | `"note-team/ソラ_note-team_ビジュアルデザイナー"` |
-| `"note-team/藤堂蓮"` | `"note-team/レン_note-team_品質管理"` |
-| `"web-team/結城颯"` | `"web-team/ソウ_web-team_WEBディレクター"` |
-| `"web-team/桐谷凪"` | `"web-team/ナギ_web-team_デザイナー"` |
-| `"web-team/真白悠"` | `"web-team/ユウ_web-team_ライター"` |
-| `"web-team/蒼月海斗"` | `"web-team/カイト_web-team_エンジニア"` |
-| `"prompt-team/白銀司"` | `"prompt-team/ツカサ_prompt-team_プロンプトエンジニア"` |
-| `"slides-team/氷室翔"` | `"slides-team/ショウ_slides-team_営業資料スペシャリスト"` |
-| `"slides-team/柚木陽菜"` | `"slides-team/ヒナ_slides-team_研修資料スペシャリスト"` |
+### 選択カード（idling_done時）
 
-また `name` も「神崎凛」→「リン」等に更新する。video-teamの2名（ヒカル_video-team_映像ディレクター、カナデ_video-team_映像エディター）も追加する。
+**続行カード**:
+- 背景: オレンジ（bg-orange-500 text-white rounded-xl p-4）
+- アイコン: Monitor or Laptop（lucide-react）
+- テキスト: 「続行」「このまま作業を続行します」
 
-### 4. サイドバーのストリーク表示ハードコード修正
+**休憩カード**:
+- 背景: 白（bg-white border rounded-xl p-4）
+- アイコン: Coffee（lucide-react）
+- テキスト: 「休憩」「1分の休憩を挟んで再度アイドリング作業を実施します」
 
-`src/components/layout/BottomNav.tsx` L102-108 の「7日連続!」がハードコード。
-`useGamification()` フックからデータ取得して動的に表示する。BottomNavは `"use client"` なので hook は使える。
+## 技術的な注意事項
 
-### 5. 技術的な注意事項
+- **既存のデザインシステム（CSS変数）を維持する**: `var(--color-foreground)`, `var(--color-surface)`, `var(--color-muted)` 等はそのまま使う
+- **オレンジ・ブルーの色は直接指定**: `#F97316`（オレンジ）、`#3B82F6`（ブルー）、`#FED7AA`（薄オレンジ）、`#BFDBFE`（薄ブルー）
+- **既存のAudio関連ロジック（AudioContext, playTimerSound, ensureAudioContext）はそのまま流用する**
+- **既存のuseTasks, useSettings hookはそのまま使う**（settingsからのfocusDuration/breakDurationは使わなくなるが、hookの呼び出し自体は残してOK）
+- **サブタスク表示（チェックリスト）は削除してOK**（アイドリング方式では不要）
+- **過集中アラート（2時間経過通知）は維持する**
+- **`src/app/focus/page.tsx` 1ファイルのみ変更する**。他のファイルは変更しない
+- **"use client" ディレクティブを先頭に維持する**
+- **lucide-react から必要なアイコンをインポート**: Play, Pause, RotateCcw, ChevronRight, Coffee, Monitor, Droplets, ArrowLeft
 
-- BottomNav の中央「+」ボタンは現在 `<button>` だが onClick がない。`<Link>` ではなく `<button>` のままで onClick を追加する
-- QuickActions は props で `onAddTask` / `onAddMemo` を受け取る設計でもOK（親コンポーネントから注入）
-- SWR の mutate は global mutate（`import { mutate } from "swr"`）を使えばどこからでもキャッシュ更新可能
-- `window.prompt` は最小実装。将来的にはモーダルダイアログに置き換えたい
+## 完了条件
 
-## 動作確認チェックリスト
-
-- [ ] ダッシュボードの「タスクを追加...」ボタンでタスク追加できる
-- [ ] BottomNav の「+」ボタンでタスク追加できる
-- [ ] サイドバーの「新しいタスク」でタスク追加できる
-- [ ] タスクカードの「編集」ボタンでタスク編集できる
-- [ ] ダッシュボードに期限未設定タスクも表示される
-- [ ] AI社員の動きセクションに正しいメンバー情報が表示される
-- [ ] サイドバーのストリークが動的に表示される
+- [ ] 6つの全ステートが正しく遷移する
+- [ ] idle: 00:00表示、Play押下でidlingへ
+- [ ] idling: 1分カウントダウン、オレンジリング進行、終了でidling_doneへ
+- [ ] idling_done: 続行/休憩の選択カード表示、各ボタンが機能する
+- [ ] idling_break: 1分カウントダウン、ブルーリング、終了でidlingへ自動遷移
+- [ ] working: カウントアップ、オレンジリング全塗り、スキップでwork_breakへ
+- [ ] work_break: 5分カウントダウン、ブルーリング、作業時間表示、終了でidlingへ
+- [ ] リセットボタンでidleに戻る
+- [ ] 音が各フェーズ終了時に鳴る
+- [ ] 過集中アラート（2時間）が維持されている
 - [ ] `npm run build` が成功する

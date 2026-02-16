@@ -1,47 +1,36 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Play, Pause, RotateCcw, Check, Coffee, Droplets, ArrowLeft } from "lucide-react";
+import { Play, Pause, RotateCcw, ChevronRight, Coffee, Monitor, Droplets, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 import { useSettings } from "@/hooks/useSettings";
 import { useTasks } from "@/hooks/useTasks";
-import type { Subtask } from "@/types";
 
-const parseSubtasksFromNotes = (notes?: string): Subtask[] => {
-  if (!notes) return [];
+type FocusState = "idle" | "idling" | "idling_done" | "idling_break" | "working" | "work_break";
 
-  return notes
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("- [ ]") || line.startsWith("- [x]") || line.startsWith("- [X]"))
-    .map((line, index) => ({
-      id: `note-subtask-${index}`,
-      title: line.replace(/^- \[[ xX]\]\s*/, "").trim(),
-      completed: /^- \[[xX]\]/.test(line),
-    }))
-    .filter((item) => item.title);
+const IDLING_SECONDS = 60;
+const IDLING_BREAK_SECONDS = 60;
+const WORK_BREAK_SECONDS = 300;
+
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 };
 
 export default function FocusPage() {
   const { tasks } = useTasks("today");
   const { settings } = useSettings();
-  const focusMinutes = settings?.focusDuration ?? 25;
-  const breakMinutes = settings?.breakDuration ?? 5;
+  void settings;
 
   const focusTask = useMemo(() => tasks.find((task) => !task.completed) ?? tasks[0], [tasks]);
-  const subtasks = useMemo(() => parseSubtasksFromNotes(focusTask?.notes), [focusTask?.notes]);
-
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [state, setState] = useState<FocusState>("idle");
+  const [timerSeconds, setTimerSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [isBreak, setIsBreak] = useState(false);
-  const [focusStartTime, setFocusStartTime] = useState<number | null>(null);
+  const [workingStartedAt, setWorkingStartedAt] = useState<number | null>(null);
+  const [lastWorkDuration, setLastWorkDuration] = useState(0);
   const [showOverfocusAlert, setShowOverfocusAlert] = useState(false);
-  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
-  const [initialized, setInitialized] = useState(false);
-
-  const totalSeconds = (isBreak ? breakMinutes : focusMinutes) * 60;
-  const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100;
 
   // iOS Safari対策: ユーザータップ時にAudioContextを作成・resume して保持
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -93,28 +82,75 @@ export default function FocusPage() {
     }
   }, []);
 
-  // settings読み込み完了時にタイマー初期値を反映
-  useEffect(() => {
-    if (settings && !initialized && !isRunning) {
-      setTimeLeft(focusMinutes * 60);
-      setInitialized(true);
-    }
-  }, [settings, initialized, isRunning, focusMinutes]);
+  const startIdling = useCallback(() => {
+    setState("idling");
+    setTimerSeconds(IDLING_SECONDS);
+    setIsRunning(true);
+  }, []);
+
+  const startWorking = useCallback(() => {
+    setState("working");
+    setTimerSeconds(0);
+    setIsRunning(true);
+    setWorkingStartedAt(Date.now());
+  }, []);
+
+  const startIdlingBreak = useCallback(() => {
+    setState("idling_break");
+    setTimerSeconds(IDLING_BREAK_SECONDS);
+    setIsRunning(true);
+  }, []);
+
+  const startWorkBreak = useCallback((workedSeconds: number) => {
+    setLastWorkDuration(workedSeconds);
+    setState("work_break");
+    setTimerSeconds(WORK_BREAK_SECONDS);
+    setIsRunning(true);
+    setWorkingStartedAt(null);
+  }, []);
 
   useEffect(() => {
     if (!isRunning) return;
+
     const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setIsRunning(false);
-          playTimerSound();
-          return 0;
+      setTimerSeconds((prev) => {
+        if (state === "idling") {
+          if (prev <= 1) {
+            playTimerSound();
+            setState("idling_done");
+            return 0;
+          }
+          return prev - 1;
         }
-        return prev - 1;
+
+        if (state === "idling_break") {
+          if (prev <= 1) {
+            playTimerSound();
+            setState("idling");
+            return IDLING_SECONDS;
+          }
+          return prev - 1;
+        }
+
+        if (state === "work_break") {
+          if (prev <= 1) {
+            playTimerSound();
+            setState("idling");
+            return IDLING_SECONDS;
+          }
+          return prev - 1;
+        }
+
+        if (state === "idling_done" || state === "working") {
+          return prev + 1;
+        }
+
+        return prev;
       });
     }, 1000);
+
     return () => clearInterval(interval);
-  }, [isRunning, playTimerSound]);
+  }, [isRunning, state, playTimerSound]);
 
   // AudioContext cleanup on unmount
   useEffect(() => {
@@ -123,47 +159,116 @@ export default function FocusPage() {
     };
   }, []);
 
+  // 過集中アラート（2時間）
   useEffect(() => {
-    if (!focusStartTime) return;
+    if (state !== "working" || !isRunning || !workingStartedAt) return;
     const check = setInterval(() => {
-      if (Date.now() - focusStartTime > 2 * 60 * 60 * 1000) {
+      if (Date.now() - workingStartedAt > 2 * 60 * 60 * 1000) {
         setShowOverfocusAlert(true);
       }
     }, 60000);
     return () => clearInterval(check);
-  }, [focusStartTime]);
+  }, [state, isRunning, workingStartedAt]);
 
   const toggleTimer = useCallback(() => {
-    // ユーザータップのコンテキストでAudioContextを準備（iOS Safari対策）
     ensureAudioContext();
-    if (!isRunning && !focusStartTime) {
-      setFocusStartTime(Date.now());
+    if (state === "idle") {
+      startIdling();
+      return;
     }
-    setIsRunning(!isRunning);
-  }, [isRunning, focusStartTime, ensureAudioContext]);
 
-  const resetTimer = () => {
+    setIsRunning((prev) => !prev);
+  }, [state, ensureAudioContext, startIdling]);
+
+  const resetTimer = useCallback(() => {
     setIsRunning(false);
-    setTimeLeft((isBreak ? breakMinutes : focusMinutes) * 60);
-  };
+    setState("idle");
+    setTimerSeconds(0);
+    setWorkingStartedAt(null);
+  }, []);
 
-  const switchMode = () => {
-    setIsBreak(!isBreak);
-    setIsRunning(false);
-    setTimeLeft((!isBreak ? breakMinutes : focusMinutes) * 60);
-  };
+  const skipPhase = useCallback(() => {
+    ensureAudioContext();
+    if (state === "idle") {
+      startIdling();
+      return;
+    }
 
-  const toggleSubtask = (id: string, current: boolean) => {
-    setOverrides((prev) => ({ ...prev, [id]: !current }));
-  };
+    if (state === "idling") {
+      setState("idling_done");
+      setTimerSeconds(0);
+      setIsRunning(true);
+      return;
+    }
 
-  const displaySubtasks = subtasks.map((subtask) => ({
-    ...subtask,
-    completed: overrides[subtask.id] ?? subtask.completed,
-  }));
+    if (state === "idling_done") {
+      startWorking();
+      return;
+    }
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
+    if (state === "working") {
+      startWorkBreak(timerSeconds);
+      return;
+    }
+
+    if (state === "work_break" || state === "idling_break") {
+      startIdling();
+    }
+  }, [state, timerSeconds, ensureAudioContext, startIdling, startWorking, startWorkBreak]);
+
+  const chooseContinue = useCallback(() => {
+    ensureAudioContext();
+    startWorking();
+  }, [ensureAudioContext, startWorking]);
+
+  const chooseBreak = useCallback(() => {
+    ensureAudioContext();
+    startIdlingBreak();
+  }, [ensureAudioContext, startIdlingBreak]);
+
+  const progress = useMemo(() => {
+    if (state === "idling") return ((IDLING_SECONDS - timerSeconds) / IDLING_SECONDS) * 100;
+    if (state === "idling_break") return ((IDLING_BREAK_SECONDS - timerSeconds) / IDLING_BREAK_SECONDS) * 100;
+    if (state === "work_break") return ((WORK_BREAK_SECONDS - timerSeconds) / WORK_BREAK_SECONDS) * 100;
+    if (state === "idling_done" || state === "working") return 100;
+    return 0;
+  }, [state, timerSeconds]);
+
+  const ringColor = state === "idling_break" || state === "work_break" ? "#3B82F6" : state === "idle" ? "var(--color-border)" : "#F97316";
+  const ringBgColor = state === "idling_break" || state === "work_break" ? "#BFDBFE" : state === "idle" ? "var(--color-border-light)" : "#FED7AA";
+
+  const stateLabel = useMemo(() => {
+    if (state === "idle") return "待機中...";
+    if (state === "idling") return "アイドリング中...";
+    if (state === "idling_done") return "選択中";
+    if (state === "idling_break") return "アイドリング休憩";
+    if (state === "working") return "作業中";
+    return "休憩中";
+  }, [state]);
+
+  const message = useMemo(() => {
+    if (state === "idle") {
+      return "まずは1分間だけのアイドリング作業を始めましょう！\n1分だけ作業した後は休憩もできるのでまずは1分！";
+    }
+
+    if (state === "idling") {
+      return "アイドリング作業を1分だけ頑張りましょう...\n終了後にこのまま作業を続けるか休憩するかを選べます。\n（中央のスキップボタンで今すぐ選択可能）";
+    }
+
+    if (state === "idling_done") {
+      return "アイドリング作業が終了しました。\nこのまま作業を継続するか一度休憩するかを選んでください。";
+    }
+
+    if (state === "idling_break") {
+      return "1分の休憩を取りましょう。\n休憩終了後に再度1分間のアイドリング作業を行います。";
+    }
+
+    if (state === "working") {
+      return "ナイス継続です！この調子で気の向くまで存分に作業を実施しましょう。\n中央のスキップボタンを押すと休憩に入ることができます。";
+    }
+
+    return `お疲れ様でした！先ほどの作業時間は${formatTime(lastWorkDuration)}でした！\n5分間の休憩です。（中央のボタンでスキップ可能）\nSNSを見ると次動くのが大変なのでストレッチやコーヒー、軽い掃除などがお勧めですよ！`;
+  }, [state, lastWorkDuration]);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-8 min-h-dvh flex flex-col">
@@ -192,41 +297,84 @@ export default function FocusPage() {
       <div className="text-center mb-8 animate-fade-in-up">
         <p className="text-xs text-[var(--color-muted)] mb-1">今集中していること</p>
         <h2 className="text-xl font-bold text-[var(--color-foreground)]">{focusTask?.title ?? "今日のタスクを選んで集中しよう"}</h2>
-        {focusTask?.notes && <p className="text-xs text-[var(--color-muted)] mt-2 max-w-sm mx-auto leading-relaxed">{focusTask.notes}</p>}
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
         <div className="relative w-64 h-64 mb-10">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 224 224">
-            <circle cx="112" cy="112" r="100" fill="none" stroke="var(--color-border-light)" strokeWidth="6" />
-            <circle cx="112" cy="112" r="100" fill="none" stroke={isBreak ? "var(--color-success)" : "var(--color-primary)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 100}`} strokeDashoffset={`${2 * Math.PI * 100 * (1 - progress / 100)}`} className="transition-all duration-1000" />
+            <circle cx="112" cy="112" r="100" fill="none" stroke={ringBgColor} strokeWidth="6" />
+            <circle
+              cx="112"
+              cy="112"
+              r="100"
+              fill="none"
+              stroke={ringColor}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 100}`}
+              strokeDashoffset={`${2 * Math.PI * 100 * (1 - Math.max(0, Math.min(100, progress)) / 100)}`}
+              className="transition-all duration-1000"
+            />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-5xl font-extrabold tracking-tight text-[var(--color-foreground)]">{String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}</span>
-            <span className={`text-xs font-medium mt-1 ${isBreak ? "text-[var(--color-success)]" : isRunning ? "text-[var(--color-primary)]" : "text-[var(--color-muted)]"}`}>{isBreak ? (isRunning ? "休憩中" : "休憩") : isRunning ? "集中中" : timeLeft === 0 ? "お疲れさま！" : "スタートしよう"}</span>
+            <span className="text-5xl font-extrabold tracking-tight text-[var(--color-foreground)]">{formatTime(timerSeconds)}</span>
+            <span className="text-xs font-medium mt-1" style={{ color: state === "idle" ? "var(--color-muted)" : ringColor }}>
+              {stateLabel}
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-6">
-          <button onClick={resetTimer} className="w-12 h-12 rounded-full bg-[var(--color-surface)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors" style={{ boxShadow: "var(--shadow-card)" }} aria-label="リセット"><RotateCcw size={18} className="text-[var(--color-muted)]" /></button>
-          <button onClick={toggleTimer} className={`w-[72px] h-[72px] rounded-full flex items-center justify-center active:scale-95 transition-transform ${isBreak ? "bg-[var(--color-success)]" : "bg-gradient-to-b from-[var(--color-primary-light)] to-[var(--color-primary)]"}`} style={{ boxShadow: isBreak ? "0 4px 16px rgba(34,197,94,0.3)" : "0 4px 16px rgba(37,99,235,0.3)" }} aria-label={isRunning ? "一時停止" : "開始"}>{isRunning ? <Pause size={30} className="text-white" fill="white" /> : <Play size={30} className="text-white ml-1" fill="white" />}</button>
-          <button onClick={switchMode} className="w-12 h-12 rounded-full bg-[var(--color-surface)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors" style={{ boxShadow: "var(--shadow-card)" }} aria-label={isBreak ? "集中に戻る" : "休憩する"}><Coffee size={18} className={isBreak ? "text-[var(--color-success)]" : "text-[var(--color-muted)]"} /></button>
+          <button
+            onClick={toggleTimer}
+            className="w-[72px] h-[72px] rounded-full bg-orange-500 flex items-center justify-center active:scale-95 transition-transform"
+            style={{ boxShadow: "0 4px 16px rgba(249,115,22,0.35)" }}
+            aria-label={isRunning ? "一時停止" : "開始"}
+          >
+            {isRunning ? <Pause size={30} className="text-white" fill="white" /> : <Play size={30} className="text-white ml-1" fill="white" />}
+          </button>
+          <button
+            onClick={skipPhase}
+            className="w-12 h-12 rounded-full bg-[var(--color-surface)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors"
+            style={{ boxShadow: "var(--shadow-card)" }}
+            aria-label="スキップ"
+          >
+            <ChevronRight size={18} className="text-[var(--color-muted)]" />
+          </button>
+          <button
+            onClick={resetTimer}
+            className="w-12 h-12 rounded-full bg-[var(--color-surface)] flex items-center justify-center hover:bg-[var(--color-surface-hover)] transition-colors"
+            style={{ boxShadow: "var(--shadow-card)" }}
+            aria-label="リセット"
+          >
+            <RotateCcw size={18} className="text-[var(--color-muted)]" />
+          </button>
         </div>
       </div>
 
-      {displaySubtasks.length > 0 && (
-        <div className="mt-8 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-          <h3 className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-wider mb-3">チェックリスト ({displaySubtasks.filter((subtask) => subtask.completed).length}/{displaySubtasks.length})</h3>
-          <div className="space-y-2">
-            {displaySubtasks.map((subtask) => (
-              <button key={subtask.id} onClick={() => toggleSubtask(subtask.id, subtask.completed)} className="flex items-center gap-3 w-full px-4 py-3 bg-[var(--color-surface)] rounded-[var(--radius-lg)] text-left transition-all" style={{ boxShadow: "var(--shadow-card)" }}>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${subtask.completed ? "bg-[var(--color-success)] border-[var(--color-success)]" : "border-[var(--color-border)]"}`}>{subtask.completed && <Check size={12} className="text-white" />}</div>
-                <span className={`text-sm ${subtask.completed ? "line-through text-[var(--color-muted)]" : "text-[var(--color-foreground)]"}`}>{subtask.title}</span>
-              </button>
-            ))}
-          </div>
+      <div className="mt-8 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+        <div className="p-4 bg-[var(--color-surface)] rounded-[var(--radius-xl)]" style={{ boxShadow: "var(--shadow-card)" }}>
+          <p className="text-sm text-[var(--color-foreground)] leading-relaxed whitespace-pre-line">{message}</p>
         </div>
-      )}
+
+        {state === "idling_done" && (
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <button onClick={chooseContinue} className="bg-orange-500 text-white rounded-xl p-4 text-left active:scale-[0.98] transition-transform">
+              <Monitor size={18} className="mb-2" />
+              <p className="text-sm font-bold">続行</p>
+              <p className="text-xs mt-1 opacity-90">このまま作業を続行します</p>
+            </button>
+            <button
+              onClick={chooseBreak}
+              className="bg-white border border-[var(--color-border)] rounded-xl p-4 text-left active:scale-[0.98] transition-transform"
+            >
+              <Coffee size={18} className="mb-2 text-[var(--color-muted)]" />
+              <p className="text-sm font-bold text-[var(--color-foreground)]">休憩</p>
+              <p className="text-xs mt-1 text-[var(--color-muted)]">1分の休憩を挟んで再度アイドリング作業を実施します</p>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
