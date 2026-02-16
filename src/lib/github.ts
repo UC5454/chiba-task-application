@@ -91,7 +91,7 @@ const fetchRepoDir = async (path: string): Promise<GitHubDirEntry[]> => {
 };
 
 export const getDailyLogs = async (date?: string): Promise<DailyLog[]> => {
-  const targetDate = date ?? new Date().toISOString().slice(0, 10);
+  const targetDate = date ?? new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const fileName = `${targetDate}.md`;
 
   const logs = await Promise.all(
@@ -147,7 +147,7 @@ export const getEmployeeDetail = async (employeeId: string, date?: string) => {
   const employee = EMPLOYEES.find((e) => e.id === employeeId);
   if (!employee) return null;
 
-  const targetDate = date ?? new Date().toISOString().slice(0, 10);
+  const targetDate = date ?? new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
   const [currentTaskMd, inboxMd, dailyLogContent, availableDates] = await Promise.all([
     fetchRepoFile(`${employee.path}/CurrentTask.md`),

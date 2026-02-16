@@ -46,12 +46,12 @@ export async function GET() {
       ]),
     );
 
-    const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
+    // JST基準で日付計算
+    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const todayStart = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()) - 9 * 60 * 60 * 1000);
 
     const thisWeekStart = new Date(todayStart);
-    thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
+    thisWeekStart.setDate(thisWeekStart.getDate() - jstNow.getUTCDay());
 
     const lastWeekStart = new Date(thisWeekStart);
     lastWeekStart.setDate(lastWeekStart.getDate() - 7);

@@ -39,9 +39,10 @@ export async function GET() {
   }
 
   try {
-    // 過去30日分の日報を取得
-    const since = new Date();
-    since.setDate(since.getDate() - 30);
+    // 過去30日分の日報を取得（JST基準）
+    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const since = new Date(jstNow);
+    since.setUTCDate(since.getUTCDate() - 30);
     const sinceStr = since.toISOString().slice(0, 10);
 
     const allPages: NotionPage[] = [];
