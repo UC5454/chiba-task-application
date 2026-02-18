@@ -125,15 +125,21 @@ export async function GET() {
       averagePerDay: daysWithData > 0 ? Math.round((totalCompletedInRange / daysWithData) * 10) / 10 : 0,
     };
 
-    // Gemini AIコメント生成（エラーでも止めない）
-    const aiComment = await generateInsightComment(insightsData).catch(() => null);
+    // Gemini AIコメント生成（非同期: タイムアウト2秒で打ち切り）
+    const aiComment = await Promise.race([
+      generateInsightComment(insightsData).catch(() => null),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+    ]);
 
     const insights: InsightsResponse = {
       ...insightsData,
       aiComment,
     };
 
-    return NextResponse.json({ insights });
+    return NextResponse.json(
+      { insights },
+      { headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=600" } },
+    );
   } catch (err) {
     console.error("Insights GET error:", err);
     return NextResponse.json({ error: "インサイトの取得に失敗しました" }, { status: 500 });

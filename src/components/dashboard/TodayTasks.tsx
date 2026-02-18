@@ -1,7 +1,7 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { Check, ChevronRight, Clock } from "lucide-react";
-import confetti from "canvas-confetti";
 import type { Priority, Task } from "@/types";
 
 import { useTasks } from "@/hooks/useTasks";
@@ -25,8 +25,27 @@ const categoryLabels: Record<string, string> = {
 export function TodayTasks() {
   const { tasks, mutate, isLoading, error } = useTasks("today");
   const { toast } = useToast();
+  const [completingIds, setCompletingIds] = useState<Set<string>>(new Set());
 
-  const handleComplete = async (taskId: string) => {
+  const handleComplete = useCallback(async (taskId: string) => {
+    // 楽観的更新: UIを即座に反映
+    setCompletingIds((prev) => new Set(prev).add(taskId));
+
+    // confettiは動的インポート（初回ロード軽量化）
+    import("canvas-confetti").then((mod) => {
+      mod.default({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+    });
+    toast.success("完了したよ！");
+
+    // SWR楽観的更新: キャッシュを即座に書き換え
+    mutate(
+      (current) => {
+        if (!current) return current;
+        return { ...current, tasks: current.tasks.filter((t) => t.id !== taskId) };
+      },
+      { revalidate: false },
+    );
+
     try {
       const response = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/complete`, { method: "POST" });
       if (!response.ok) {
@@ -37,14 +56,21 @@ export function TodayTasks() {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error ?? "操作に失敗しました");
       }
-      confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
-      toast.success("完了したよ！");
-      await mutate();
+      // 成功: バックグラウンドで最新データに同期
+      mutate();
     } catch (err) {
       console.error(err);
       toast.error("完了できなかった。もう一度試してみてね。");
+      // 失敗: ロールバック（サーバーから最新を再取得）
+      mutate();
+    } finally {
+      setCompletingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(taskId);
+        return next;
+      });
     }
-  };
+  }, [mutate, toast]);
 
   if (isLoading) {
     return (

@@ -10,9 +10,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <SessionProvider>
       <SWRConfig
         value={{
-          dedupingInterval: 30000,
-          focusThrottleInterval: 300000,
-          revalidateOnFocus: false,
+          dedupingInterval: 10000,
+          focusThrottleInterval: 60000,
+          revalidateOnFocus: true,
+          revalidateOnReconnect: true,
           keepPreviousData: true,
         }}
       >

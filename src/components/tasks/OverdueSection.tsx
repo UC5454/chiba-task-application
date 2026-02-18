@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AlertCircle, ArrowRight, CalendarClock, X } from "lucide-react";
 import type { Task } from "@/types";
 
@@ -9,7 +10,23 @@ interface OverdueSectionProps {
 }
 
 export function OverdueSection({ tasks, onChanged }: OverdueSectionProps) {
+  // 楽観的更新: 操作済みタスクをローカルで即座に非表示
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  const dismissTask = (taskId: string) => {
+    setDismissedIds((prev) => new Set(prev).add(taskId));
+  };
+
+  const rollbackTask = (taskId: string) => {
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(taskId);
+      return next;
+    });
+  };
+
   const handleReschedule = async (taskId: string, newDueDate: "today" | "tomorrow") => {
+    dismissTask(taskId);
     try {
       const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/reschedule`, {
         method: "POST",
@@ -17,32 +34,37 @@ export function OverdueSection({ tasks, onChanged }: OverdueSectionProps) {
         body: JSON.stringify({ newDueDate }),
       });
       if (!res.ok) throw new Error();
-      await onChanged?.();
+      onChanged?.();
     } catch {
-      // silently fail — task list will refresh on next poll
+      rollbackTask(taskId);
     }
   };
 
   const handleRelease = async (taskId: string) => {
+    dismissTask(taskId);
     try {
       const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/release`, { method: "POST" });
       if (!res.ok) throw new Error();
-      await onChanged?.();
+      onChanged?.();
     } catch {
-      // silently fail
+      rollbackTask(taskId);
     }
   };
+
+  const visibleTasks = tasks.filter((t) => !dismissedIds.has(t.id));
+
+  if (visibleTasks.length === 0) return null;
 
   return (
     <section>
       <div className="flex items-center gap-2 mb-2.5">
         <AlertCircle size={14} className="text-[var(--color-priority-high)]" />
-        <h3 className="text-sm font-bold text-[var(--color-priority-high)]">やり残し ({tasks.length}件)</h3>
+        <h3 className="text-sm font-bold text-[var(--color-priority-high)]">やり残し ({visibleTasks.length}件)</h3>
       </div>
 
       <div className="space-y-2">
-        {tasks.map((task) => (
-          <div key={task.id} className="bg-[var(--color-overdue-bg)] rounded-[var(--radius-xl)] p-4" style={{ boxShadow: "var(--shadow-card)" }}>
+        {visibleTasks.map((task) => (
+          <div key={task.id} className="bg-[var(--color-overdue-bg)] rounded-[var(--radius-xl)] p-4 animate-fade-in-up" style={{ boxShadow: "var(--shadow-card)" }}>
             <div className="flex items-start gap-3">
               <div className="w-1 h-8 rounded-full bg-[var(--color-priority-high)] shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">

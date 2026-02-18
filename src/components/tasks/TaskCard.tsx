@@ -1,6 +1,5 @@
 "use client";
 
-import confetti from "canvas-confetti";
 import { useState, type MouseEvent } from "react";
 import { Check, ChevronRight, Clock } from "lucide-react";
 import type { Task, Priority } from "@/types";
@@ -62,7 +61,9 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
     e.stopPropagation();
     if (completed) return;
     setCompleted(true);
-    confetti({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+    import("canvas-confetti").then((mod) => {
+      mod.default({ particleCount: 80, spread: 60, origin: { y: 0.8 } });
+    });
     toast.success("完了したよ！");
     try {
       const response = await fetch(`/api/tasks/${encodeURIComponent(task.id)}/complete`, { method: "POST" });
