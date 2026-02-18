@@ -6,7 +6,7 @@ const toJST = (date: Date) => new Date(date.getTime() + JST_OFFSET_MS);
 
 const defaultSettings: ADHDSettings = {
   maxDailyTasks: 5,
-  focusDuration: 25,
+  idlingSeconds: 60,
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00",
   gentleRemind: true,
@@ -14,7 +14,7 @@ const defaultSettings: ADHDSettings = {
   autoReleaseEnabled: true,
   autoReleaseDays: 14,
   overfocusAlert: 120,
-  breakDuration: 5,
+  workBreakMinutes: 5,
   slackNotifyEnabled: true,
 };
 

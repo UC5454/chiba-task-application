@@ -89,9 +89,9 @@ export interface Badge {
 // ADHD設定
 export interface ADHDSettings {
   maxDailyTasks: number;
-  focusDuration: number;
-  overfocusAlert: number;
-  breakDuration: number;
+  idlingSeconds: number;       // アイドリング時間（秒）: デフォルト60
+  overfocusAlert: number;      // 過集中アラート（分）: デフォルト120
+  workBreakMinutes: number;    // 作業後休憩（分）: デフォルト5
   slackNotifyEnabled: boolean;
   quietHoursStart: string; // "HH:mm"
   quietHoursEnd: string;

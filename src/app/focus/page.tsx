@@ -24,7 +24,11 @@ export default function FocusPage() {
   const { tasks } = useTasks("today");
   const { settings } = useSettings();
   const { data: authSession } = useSession();
-  void settings;
+
+  // 設定値（設定未取得時はデフォルト値）
+  const idlingDuration = settings?.idlingSeconds ?? IDLING_SECONDS;
+  const workBreakDuration = (settings?.workBreakMinutes ?? 5) * 60;
+  const overfocusMinutes = settings?.overfocusAlert ?? 120;
 
   const autoFocusTask = useMemo(() => tasks.find((task) => !task.completed) ?? tasks[0], [tasks]);
 
@@ -165,9 +169,9 @@ export default function FocusPage() {
 
   const startIdling = useCallback(() => {
     setState("idling");
-    setTimerSeconds(IDLING_SECONDS);
+    setTimerSeconds(idlingDuration);
     setIsRunning(true);
-  }, []);
+  }, [idlingDuration]);
 
   const startWorking = useCallback(() => {
     setState("working");
@@ -179,19 +183,19 @@ export default function FocusPage() {
 
   const startIdlingBreak = useCallback(() => {
     setState("idling_break");
-    setTimerSeconds(IDLING_BREAK_SECONDS);
+    setTimerSeconds(idlingDuration);
     setIsRunning(true);
     trackStateChange("idling_break");
-  }, [trackStateChange]);
+  }, [idlingDuration, trackStateChange]);
 
   const startWorkBreak = useCallback((workedSeconds: number) => {
     setLastWorkDuration(workedSeconds);
     setState("work_break");
-    setTimerSeconds(WORK_BREAK_SECONDS);
+    setTimerSeconds(workBreakDuration);
     setIsRunning(true);
     setWorkingStartedAt(null);
     trackStateChange("work_break");
-  }, [trackStateChange]);
+  }, [workBreakDuration, trackStateChange]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -213,7 +217,7 @@ export default function FocusPage() {
             playTimerSound();
             setState("idling");
             trackStateChange("idling");
-            return IDLING_SECONDS;
+            return idlingDuration;
           }
           return prev - 1;
         }
@@ -223,7 +227,7 @@ export default function FocusPage() {
             playTimerSound();
             setState("idling");
             trackStateChange("idling");
-            return IDLING_SECONDS;
+            return idlingDuration;
           }
           return prev - 1;
         }
@@ -237,7 +241,7 @@ export default function FocusPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isRunning, state, playTimerSound, trackStateChange]);
+  }, [isRunning, state, idlingDuration, playTimerSound, trackStateChange]);
 
   // AudioContext cleanup on unmount
   useEffect(() => {
@@ -246,16 +250,16 @@ export default function FocusPage() {
     };
   }, []);
 
-  // 過集中アラート（2時間）
+  // 過集中アラート（設定値に基づく）
   useEffect(() => {
     if (state !== "working" || !isRunning || !workingStartedAt) return;
     const check = setInterval(() => {
-      if (Date.now() - workingStartedAt > 2 * 60 * 60 * 1000) {
+      if (Date.now() - workingStartedAt > overfocusMinutes * 60 * 1000) {
         setShowOverfocusAlert(true);
       }
     }, 60000);
     return () => clearInterval(check);
-  }, [state, isRunning, workingStartedAt]);
+  }, [state, isRunning, workingStartedAt, overfocusMinutes]);
 
   const toggleTimer = useCallback(() => {
     ensureAudioContext();
@@ -333,12 +337,12 @@ export default function FocusPage() {
   }, [customTitle]);
 
   const progress = useMemo(() => {
-    if (state === "idling") return ((IDLING_SECONDS - timerSeconds) / IDLING_SECONDS) * 100;
-    if (state === "idling_break") return ((IDLING_BREAK_SECONDS - timerSeconds) / IDLING_BREAK_SECONDS) * 100;
-    if (state === "work_break") return ((WORK_BREAK_SECONDS - timerSeconds) / WORK_BREAK_SECONDS) * 100;
+    if (state === "idling") return ((idlingDuration - timerSeconds) / idlingDuration) * 100;
+    if (state === "idling_break") return ((idlingDuration - timerSeconds) / idlingDuration) * 100;
+    if (state === "work_break") return ((workBreakDuration - timerSeconds) / workBreakDuration) * 100;
     if (state === "idling_done" || state === "working") return 100;
     return 0;
-  }, [state, timerSeconds]);
+  }, [state, timerSeconds, idlingDuration, workBreakDuration]);
 
   const ringColor = state === "idling_break" || state === "work_break" ? "#3B82F6" : state === "idle" ? "var(--color-border)" : "#F97316";
   const ringBgColor = state === "idling_break" || state === "work_break" ? "#BFDBFE" : state === "idle" ? "var(--color-border-light)" : "#FED7AA";
@@ -352,13 +356,16 @@ export default function FocusPage() {
     return "休憩中";
   }, [state]);
 
+  const idlingLabel = idlingDuration >= 60 ? `${Math.floor(idlingDuration / 60)}分` : `${idlingDuration}秒`;
+  const breakLabel = `${Math.floor(workBreakDuration / 60)}分`;
+
   const message = useMemo(() => {
     if (state === "idle") {
-      return "まずは1分間だけのアイドリング作業を始めましょう！\n1分だけ作業した後は休憩もできるのでまずは1分！";
+      return `まずは${idlingLabel}だけのアイドリング作業を始めましょう！\n${idlingLabel}だけ作業した後は休憩もできるのでまずは${idlingLabel}！`;
     }
 
     if (state === "idling") {
-      return "アイドリング作業を1分だけ頑張りましょう...\n終了後にこのまま作業を続けるか休憩するかを選べます。\n（中央のスキップボタンで今すぐ選択可能）";
+      return `アイドリング作業を${idlingLabel}だけ頑張りましょう...\n終了後にこのまま作業を続けるか休憩するかを選べます。\n（中央のスキップボタンで今すぐ選択可能）`;
     }
 
     if (state === "idling_done") {
@@ -366,15 +373,15 @@ export default function FocusPage() {
     }
 
     if (state === "idling_break") {
-      return "1分の休憩を取りましょう。\n休憩終了後に再度1分間のアイドリング作業を行います。";
+      return `${idlingLabel}の休憩を取りましょう。\n休憩終了後に再度${idlingLabel}のアイドリング作業を行います。`;
     }
 
     if (state === "working") {
       return "ナイス継続です！この調子で気の向くまで存分に作業を実施しましょう。\n中央のスキップボタンを押すと休憩に入ることができます。";
     }
 
-    return `お疲れ様でした！先ほどの作業時間は${formatTime(lastWorkDuration)}でした！\n5分間の休憩です。（中央のボタンでスキップ可能）\nSNSを見ると次動くのが大変なのでストレッチやコーヒー、軽い掃除などがお勧めですよ！`;
-  }, [state, lastWorkDuration]);
+    return `お疲れ様でした！先ほどの作業時間は${formatTime(lastWorkDuration)}でした！\n${breakLabel}の休憩です。（中央のボタンでスキップ可能）\nSNSを見ると次動くのが大変なのでストレッチやコーヒー、軽い掃除などがお勧めですよ！`;
+  }, [state, lastWorkDuration, idlingLabel, breakLabel]);
 
   const incompleteTasks = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
 
@@ -391,7 +398,7 @@ export default function FocusPage() {
         <div className="mb-6 p-4 bg-[var(--color-priority-mid-bg)] rounded-[var(--radius-xl)] animate-fade-in-up" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="flex items-center gap-2 mb-2">
             <Coffee size={18} className="text-[var(--color-priority-mid)]" />
-            <span className="text-sm font-bold text-[var(--color-priority-mid)]">2時間経過！一度休もう</span>
+            <span className="text-sm font-bold text-[var(--color-priority-mid)]">{overfocusMinutes >= 60 ? `${Math.floor(overfocusMinutes / 60)}時間` : `${overfocusMinutes}分`}経過！一度休もう</span>
           </div>
           <div className="flex items-center gap-3 text-xs text-[var(--color-muted)]">
             <span className="flex items-center gap-1"><Droplets size={12} /> 水を飲もう</span>

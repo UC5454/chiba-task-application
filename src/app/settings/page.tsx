@@ -20,9 +20,9 @@ const urlBase64ToUint8Array = (base64String: string) => {
 
 const defaultSettings: ADHDSettings = {
   maxDailyTasks: 5,
-  focusDuration: 25,
+  idlingSeconds: 60,
   overfocusAlert: 120,
-  breakDuration: 5,
+  workBreakMinutes: 5,
   slackNotifyEnabled: true,
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00",
@@ -253,13 +253,25 @@ export default function SettingsPage() {
         <div className="bg-[var(--color-surface)] rounded-[var(--radius-xl)] divide-y divide-[var(--color-border-light)]" style={{ boxShadow: "var(--shadow-card)" }}>
           <div className="flex items-center justify-between px-4 py-3.5">
             <div>
-              <p className="text-sm font-medium text-[var(--color-foreground)]">ポモドーロ時間</p>
-              <p className="text-[11px] text-[var(--color-muted)] mt-0.5">集中する時間の長さ</p>
+              <p className="text-sm font-medium text-[var(--color-foreground)]">アイドリング時間</p>
+              <p className="text-[11px] text-[var(--color-muted)] mt-0.5">「まずは○秒だけ」の時間</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => saveSettings({ focusDuration: Math.max(5, current.focusDuration - 5) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
-              <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{current.focusDuration}分</span>
-              <button onClick={() => saveSettings({ focusDuration: Math.min(60, current.focusDuration + 5) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
+              <button onClick={() => saveSettings({ idlingSeconds: Math.max(30, current.idlingSeconds - 15) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
+              <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{current.idlingSeconds}秒</span>
+              <button onClick={() => saveSettings({ idlingSeconds: Math.min(180, current.idlingSeconds + 15) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3.5">
+            <div>
+              <p className="text-sm font-medium text-[var(--color-foreground)]">作業後の休憩</p>
+              <p className="text-[11px] text-[var(--color-muted)] mt-0.5">作業モード終了後の休憩時間</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => saveSettings({ workBreakMinutes: Math.max(1, current.workBreakMinutes - 1) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
+              <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{current.workBreakMinutes}分</span>
+              <button onClick={() => saveSettings({ workBreakMinutes: Math.min(15, current.workBreakMinutes + 1) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
             </div>
           </div>
 
@@ -269,18 +281,9 @@ export default function SettingsPage() {
               <p className="text-[11px] text-[var(--color-muted)] mt-0.5">連続作業の上限時間</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => saveSettings({ overfocusAlert: Math.max(60, current.overfocusAlert - 30) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
+              <button onClick={() => saveSettings({ overfocusAlert: Math.max(30, current.overfocusAlert - 30) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
               <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{current.overfocusAlert}分</span>
               <button onClick={() => saveSettings({ overfocusAlert: Math.min(240, current.overfocusAlert + 30) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between px-4 py-3.5">
-            <p className="text-sm font-medium text-[var(--color-foreground)]">休憩時間</p>
-            <div className="flex items-center gap-2">
-              <button onClick={() => saveSettings({ breakDuration: Math.max(3, current.breakDuration - 1) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">-</button>
-              <span className="w-12 text-center text-sm font-bold text-[var(--color-primary)]">{current.breakDuration}分</span>
-              <button onClick={() => saveSettings({ breakDuration: Math.min(20, current.breakDuration + 1) })} className="w-8 h-8 rounded-full bg-[var(--color-surface-hover)] flex items-center justify-center text-sm font-bold text-[var(--color-muted)]">+</button>
             </div>
           </div>
         </div>
