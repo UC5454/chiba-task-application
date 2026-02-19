@@ -1,4 +1,5 @@
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { getJSTHour, toJSTDateString } from "@/lib/timezone";
 
 const GAMIFICATION_TABLE = "gamification";
 
@@ -87,20 +88,17 @@ export const updateGamificationOnComplete = async (context: CompleteContext = {}
   const current = await getOrCreateGamification();
 
   const completedAt = context.completedAt ?? new Date();
-  const today = new Date(completedAt);
-  today.setHours(0, 0, 0, 0);
-  const todayIso = today.toISOString().split("T")[0];
+  const todayIso = toJSTDateString(completedAt);
 
-  const lastDate = current.last_completed_date ? new Date(current.last_completed_date) : null;
-  if (lastDate) {
-    lastDate.setHours(0, 0, 0, 0);
-  }
+  const lastDateStr = current.last_completed_date ?? null;
 
   let streak = current.current_streak;
-  if (!lastDate) {
+  if (!lastDateStr) {
     streak = 1;
   } else {
-    const diff = Math.floor((today.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    const todayMs = new Date(todayIso).getTime();
+    const lastMs = new Date(lastDateStr).getTime();
+    const diff = Math.round((todayMs - lastMs) / (1000 * 60 * 60 * 24));
     streak = diff === 1 ? current.current_streak + 1 : diff === 0 ? current.current_streak : 1;
   }
 
@@ -115,7 +113,7 @@ export const updateGamificationOnComplete = async (context: CompleteContext = {}
   if (totalCompleted >= 50) badges = addBadge(badges, "total50", completedAt);
   if (totalCompleted >= 100) badges = addBadge(badges, "total100", completedAt);
 
-  if (completedAt.getHours() < 9) {
+  if (getJSTHour(completedAt) < 9) {
     badges = addBadge(badges, "morning", completedAt);
   }
 

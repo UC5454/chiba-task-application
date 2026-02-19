@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getAccessTokenFromSession } from "@/lib/api-auth";
 import { createTask, listTasks } from "@/lib/google-tasks";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { getJSTDay, isTodayJST, nowJST, todayStartUTC, toJSTDateString } from "@/lib/timezone";
 import type { Category, Priority, Task, TaskCreateInput } from "@/types";
 
 type TaskMetadataRow = {
@@ -15,11 +16,7 @@ type TaskMetadataRow = {
 
 const taskMetadataTable = "task_metadata";
 
-const isTodayDate = (date: Date) => {
-  const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-  return jstDate.getUTCFullYear() === jstNow.getUTCFullYear() && jstDate.getUTCMonth() === jstNow.getUTCMonth() && jstDate.getUTCDate() === jstNow.getUTCDate();
-};
+const isTodayDate = (date: Date) => isTodayJST(date);
 
 const mergeWithMetadata = (tasks: Task[], metadataRows: TaskMetadataRow[]) => {
   const metadataMap = new Map(metadataRows.map((row) => [row.google_task_id, row]));
@@ -104,13 +101,12 @@ export async function GET(request: Request) {
     const filtered = filterTasks(merged, filter);
 
     if (filter === "completed") {
-      const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-      const todayStart = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()) - 9 * 60 * 60 * 1000);
+      const todayStart = todayStartUTC();
       const todayCount = filtered.filter(
         (t) => t.completedAt && new Date(t.completedAt).getTime() >= todayStart.getTime(),
       ).length;
       const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - jstNow.getUTCDay());
+      weekStart.setDate(weekStart.getDate() - getJSTDay());
       const thisWeekCount = filtered.filter(
         (t) => t.completedAt && new Date(t.completedAt).getTime() >= weekStart.getTime(),
       ).length;
@@ -148,7 +144,7 @@ export async function POST(request: Request) {
     // HTML date input は "YYYY-MM-DD" を返すが、APIは "YYYY-MM-DDT00:00:00.000Z" が必要
     let dueDate: string | undefined;
     if (body.dueDate) {
-      dueDate = body.dueDate.includes("T") ? body.dueDate : `${body.dueDate}T00:00:00.000Z`;
+      dueDate = body.dueDate.includes("T") ? body.dueDate : `${body.dueDate}T00:00:00+09:00`;
     }
 
     const createdTask = await createTask(accessToken, {

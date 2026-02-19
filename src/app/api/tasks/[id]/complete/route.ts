@@ -5,12 +5,10 @@ import { updateGamificationOnComplete } from "@/lib/gamification";
 import { completeTask, getTaskById, listTasks } from "@/lib/google-tasks";
 import { writeTaskHistory } from "@/lib/notion";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { isTodayJST } from "@/lib/timezone";
 import type { Category } from "@/types";
 
-const isToday = (date: Date) => {
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
-};
+const isToday = (date: Date) => isTodayJST(date);
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const accessToken = await getAccessTokenFromSession();

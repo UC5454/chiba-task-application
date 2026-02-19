@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getAuthSession } from "@/lib/api-auth";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { toJSTDateString } from "@/lib/timezone";
 
 export async function GET() {
   const session = await getAuthSession();
@@ -40,12 +41,11 @@ export async function GET() {
     let totalSeconds = 0;
     const dailyMap: Record<string, number> = {};
 
-    // Initialize 7 days
+    // Initialize 7 days (JST)
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      dailyMap[key] = 0;
+      dailyMap[toJSTDateString(d)] = 0;
     }
 
     for (const s of validSessions) {
@@ -54,7 +54,7 @@ export async function GET() {
         : Math.round((now.getTime() - new Date(s.started_at as string).getTime()) / 1000);
       totalSeconds += dur;
 
-      const dayKey = new Date(s.started_at as string).toISOString().slice(0, 10);
+      const dayKey = toJSTDateString(new Date(s.started_at as string));
       if (dayKey in dailyMap) {
         dailyMap[dayKey] += dur;
       }

@@ -4,6 +4,7 @@ import { getAccessTokenFromSession } from "@/lib/api-auth";
 import { generateInsightComment } from "@/lib/gemini";
 import { listTasks } from "@/lib/google-tasks";
 import { getSupabaseAdminClient } from "@/lib/supabase";
+import { getJSTDay, todayStartUTC, toJSTDateString } from "@/lib/timezone";
 import type { Category, Priority } from "@/types";
 
 type CategoryCount = Record<string, number>;
@@ -47,11 +48,10 @@ export async function GET() {
     );
 
     // JST基準で日付計算
-    const jstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    const todayStart = new Date(Date.UTC(jstNow.getUTCFullYear(), jstNow.getUTCMonth(), jstNow.getUTCDate()) - 9 * 60 * 60 * 1000);
+    const todayStart = todayStartUTC();
 
     const thisWeekStart = new Date(todayStart);
-    thisWeekStart.setDate(thisWeekStart.getDate() - jstNow.getUTCDay());
+    thisWeekStart.setDate(thisWeekStart.getDate() - getJSTDay());
 
     const lastWeekStart = new Date(thisWeekStart);
     lastWeekStart.setDate(lastWeekStart.getDate() - 7);
@@ -67,13 +67,13 @@ export async function GET() {
     for (let i = 13; i >= 0; i--) {
       const d = new Date(todayStart);
       d.setDate(d.getDate() - i);
-      dailyMap.set(d.toISOString().split("T")[0], 0);
+      dailyMap.set(toJSTDateString(d), 0);
     }
 
     for (const task of completedTasks) {
       if (!task.completedAt) continue;
       const completedDate = new Date(task.completedAt);
-      const dateKey = completedDate.toISOString().split("T")[0];
+      const dateKey = toJSTDateString(completedDate);
 
       if (dailyMap.has(dateKey)) {
         dailyMap.set(dateKey, (dailyMap.get(dateKey) ?? 0) + 1);
