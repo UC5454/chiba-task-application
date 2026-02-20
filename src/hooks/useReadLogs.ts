@@ -30,14 +30,30 @@ export function useReadLogs() {
 
   useEffect(() => {
     setReadLogs(load());
+
+    // Sync when other tabs update localStorage
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) setReadLogs(load());
+    };
+    // Sync when user returns to tab (picks up writes from other hook instances)
+    const onFocus = () => setReadLogs(load());
+
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   /** 特定の社員・日付を既読にする */
   const markAsRead = useCallback((employeeId: string, date: string) => {
-    setReadLogs((prev) => {
-      const dates = prev[employeeId] ?? [];
-      if (dates.includes(date)) return prev;
-      const next = { ...prev, [employeeId]: [...dates, date] };
+    setReadLogs(() => {
+      // Always re-read localStorage to avoid overwriting data from other hook instances
+      const current = load();
+      const dates = current[employeeId] ?? [];
+      if (dates.includes(date)) return current;
+      const next = { ...current, [employeeId]: [...dates, date] };
       save(next);
       return next;
     });
@@ -45,10 +61,11 @@ export function useReadLogs() {
 
   /** 特定の社員の全日報を既読にする */
   const markAllAsRead = useCallback((employeeId: string, dates: string[]) => {
-    setReadLogs((prev) => {
-      const existing = new Set(prev[employeeId] ?? []);
+    setReadLogs(() => {
+      const current = load();
+      const existing = new Set(current[employeeId] ?? []);
       dates.forEach((d) => existing.add(d));
-      const next = { ...prev, [employeeId]: [...existing] };
+      const next = { ...current, [employeeId]: [...existing] };
       save(next);
       return next;
     });

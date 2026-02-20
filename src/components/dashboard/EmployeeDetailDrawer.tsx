@@ -50,6 +50,13 @@ export function EmployeeDetailDrawer({ open, employeeId, onClose, onMarkRead, on
   const currentDate = selectedDate ?? detail?.availableDates[0] ?? "";
   const dateIsRead = employeeId && currentDate ? isDateRead?.(employeeId, currentDate) : false;
 
+  // Auto-mark as read when daily log content is loaded
+  useEffect(() => {
+    if (detail?.dailyLog && employeeId && currentDate && !dateIsRead) {
+      onMarkRead?.(employeeId, currentDate);
+    }
+  }, [detail?.dailyLog, employeeId, currentDate, dateIsRead, onMarkRead]);
+
   const handleMarkThisRead = () => {
     if (employeeId && currentDate) {
       onMarkRead?.(employeeId, currentDate);

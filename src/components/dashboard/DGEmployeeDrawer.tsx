@@ -37,6 +37,13 @@ export function DGEmployeeDrawer({ open, employee, onClose, onMarkRead, onMarkAl
 
   const employeeId = employee?.id ?? "";
   const dateIsRead = employeeId && currentDate ? isDateRead?.(employeeId, currentDate) : false;
+
+  // Auto-mark as read when daily log content is loaded
+  useEffect(() => {
+    if (detail?.dailyLog && employeeId && currentDate && !dateIsRead) {
+      onMarkRead?.(employeeId, currentDate);
+    }
+  }, [detail?.dailyLog, employeeId, currentDate, dateIsRead, onMarkRead]);
   const availableDates = employee?.logDates ?? [];
 
   const unreadCount = employeeId
