@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getAccessTokenFromSession } from "@/lib/api-auth";
 import { createTask, listTasks } from "@/lib/google-tasks";
 import { getSupabaseAdminClient } from "@/lib/supabase";
-import { getJSTDay, isTodayJST, nowJST, todayStartUTC, toJSTDateString } from "@/lib/timezone";
+import { getJSTDay, isTodayJST, nowJST, todayStartUTC, toJST, toJSTDateString } from "@/lib/timezone";
 import type { Category, Priority, Task, TaskCreateInput } from "@/types";
 
 type TaskMetadataRow = {
@@ -81,20 +81,29 @@ export async function GET(request: Request) {
         tasks.map((task) => task.googleTaskId),
       );
 
-    const now = Date.now();
+    // JST日付レベルでoverdue判定（UTC比較だと9時以降に当日タスクが「やり残し」になるバグがあった）
+    const jstNow = nowJST();
+    const todayJST = new Date(jstNow);
+    todayJST.setUTCHours(0, 0, 0, 0);
+
     const merged = mergeWithMetadata(tasks, (metadataRows as TaskMetadataRow[] | null) ?? []).map((task) => {
       if (!task.dueDate || task.completed) {
         return task;
       }
 
-      const overdueMs = now - new Date(task.dueDate).getTime();
-      if (overdueMs <= 0) {
-        return task;
+      const dueDateJST = toJST(new Date(task.dueDate));
+      const dueDayJST = new Date(dueDateJST);
+      dueDayJST.setUTCHours(0, 0, 0, 0);
+
+      const diffDays = Math.floor((todayJST.getTime() - dueDayJST.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays <= 0) {
+        return task; // 今日または未来 — やり残しではない
       }
 
       return {
         ...task,
-        overduedays: Math.max(1, Math.floor(overdueMs / (1000 * 60 * 60 * 24))),
+        overduedays: diffDays,
       };
     });
 
