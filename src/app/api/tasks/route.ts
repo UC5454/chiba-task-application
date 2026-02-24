@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getAccessTokenFromSession } from "@/lib/api-auth";
 import { createTask, listTasks } from "@/lib/google-tasks";
 import { getSupabaseAdminClient } from "@/lib/supabase";
-import { getJSTDay, isTodayJST, nowJST, todayStartUTC, toJST, toJSTDateString } from "@/lib/timezone";
+import { getJSTDay, isTodayJST, todayStartUTC, toJSTDateString } from "@/lib/timezone";
 import type { Category, Priority, Task, TaskCreateInput } from "@/types";
 
 type TaskMetadataRow = {
@@ -81,25 +81,27 @@ export async function GET(request: Request) {
         tasks.map((task) => task.googleTaskId),
       );
 
-    // JST日付レベルでoverdue判定（UTC比較だと9時以降に当日タスクが「やり残し」になるバグがあった）
-    const jstNow = nowJST();
-    const todayJST = new Date(jstNow);
-    todayJST.setUTCHours(0, 0, 0, 0);
+    // JST日付レベルでoverdue判定
+    // Google Tasks APIは dueDate を "YYYY-MM-DDT00:00:00.000Z" (UTC midnight) で保存する。
+    // 日付部分がそのまま期限日を表すので、toJSTは不要。
+    // "今日" の判定だけJSTで行う。
+    const jstToday = toJSTDateString(new Date());
 
     const merged = mergeWithMetadata(tasks, (metadataRows as TaskMetadataRow[] | null) ?? []).map((task) => {
       if (!task.dueDate || task.completed) {
         return task;
       }
 
-      const dueDateJST = toJST(new Date(task.dueDate));
-      const dueDayJST = new Date(dueDateJST);
-      dueDayJST.setUTCHours(0, 0, 0, 0);
+      // Google Tasks の dueDate から日付文字列を抽出 (YYYY-MM-DD)
+      const dueDay = task.dueDate.slice(0, 10);
 
-      const diffDays = Math.floor((todayJST.getTime() - dueDayJST.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diffDays <= 0) {
+      if (dueDay >= jstToday) {
         return task; // 今日または未来 — やり残しではない
       }
+
+      // 日数差を計算
+      const diffMs = new Date(jstToday).getTime() - new Date(dueDay).getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
       return {
         ...task,
@@ -151,9 +153,11 @@ export async function POST(request: Request) {
 
     // 日付をRFC 3339形式に正規化（Google Tasks APIが要求）
     // HTML date input は "YYYY-MM-DD" を返すが、APIは "YYYY-MM-DDT00:00:00.000Z" が必要
+    // 注: +09:00 で送ると Google が UTC 変換時に日付を1日前にする可能性があるため、
+    //      UTC midnight (.000Z) で送信する
     let dueDate: string | undefined;
     if (body.dueDate) {
-      dueDate = body.dueDate.includes("T") ? body.dueDate : `${body.dueDate}T00:00:00+09:00`;
+      dueDate = body.dueDate.includes("T") ? body.dueDate : `${body.dueDate}T00:00:00.000Z`;
     }
 
     const createdTask = await createTask(accessToken, {
