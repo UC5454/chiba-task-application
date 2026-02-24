@@ -55,7 +55,9 @@ const filterTasks = (tasks: Task[], filter: string | null) => {
 
       if (!task.dueDate) return true;
 
-      return isTodayDate(new Date(task.dueDate));
+      // 今日のタスク + やり残しタスク（期限切れ）も含める
+      // やり残しがtodayフィルタから除外されると、バナーには出るが一覧で操作できない問題が起きる
+      return isTodayDate(new Date(task.dueDate)) || (task.overduedays ?? 0) > 0;
     });
   }
 
