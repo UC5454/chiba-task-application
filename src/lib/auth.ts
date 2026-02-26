@@ -9,6 +9,7 @@ const GOOGLE_SCOPES = [
   "profile",
   "https://www.googleapis.com/auth/tasks",
   "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/gmail.readonly",
 ].join(" ");
 
 const allowedEmail = process.env.ALLOWED_EMAIL?.toLowerCase();
