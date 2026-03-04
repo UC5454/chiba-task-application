@@ -1,106 +1,315 @@
-# CODEX-TASK: 集中モードを「アイドリング方式」に全面リニューアル
+# CODEX-TASK: SOU Task アプリ大幅改善
 
 ## 概要
+SOU Task（ADHD配慮タスク管理PWA）の5つの改善を実施する。
+技術スタック: Next.js 16 + React 19 + TypeScript + Tailwind CSS 4 + Radix UI + SWR + Framer Motion + Lucide React
 
-`src/app/focus/page.tsx` の既存ポモドーロタイマー（25分カウントダウン方式）を、
-ADHD向け「アイドリング方式」タイマーに全面書き換える。
+**重要**: ビルドが通ること（`npm run build` が成功すること）を必ず確認すること。
 
-コンセプト: **「まず1分だけ」のハードルの低さで動き出しを促し、乗ってきたら自由に作業を続ける。**
+---
 
-## ステートマシン（6状態）
+## Task 1: タスク登録の簡易化（インライン入力）
 
+### 現状
+- ダッシュボードの `QuickActions` と `BottomNav` の「+」ボタンは `InputDialog`（モーダル）を開く
+- タスクページの「+ 追加」ボタンも同様にモーダル
+- モーダルを開く→入力→保存の3ステップが必要
+
+### 要件
+**ダッシュボードのQuickActionsをインライン入力に変更する**:
+1. `src/components/dashboard/QuickActions.tsx` の「タスクを追加...」ボタンをクリックすると、**その場でテキスト入力に切り替わる**（モーダルではなく）
+2. テキスト入力フィールドはボタンと同じ位置・サイズで表示される
+3. Enterキーで即座に送信、Escapeキーでキャンセル
+4. 送信後は入力フィールドを維持し、連続追加可能にする（フォーカスを維持）
+5. 3秒間操作がなければ自動的にボタン表示に戻る（blur時）
+6. InputDialogのインポートと使用を削除し、代わりにインラインstateで管理する
+
+**タスクページも同様にインライン化**:
+1. `src/app/tasks/page.tsx` のヘッダー横の「+ 追加」ボタンをクリックすると、タスクリストの先頭にインライン入力行が表示される
+2. カード風のスタイル（`card-elevated` class使用）で入力フィールドを表示
+3. Enterで送信、Escapeでキャンセル
+4. placeholder: 「タスク名を入力してEnter」
+
+**BottomNavの+ボタンはそのまま**（モーダルのまま維持。モバイルでは画面下部からのモーダルが自然なため）
+
+### 対象ファイル
+- `src/components/dashboard/QuickActions.tsx` — インライン入力に書き換え
+- `src/app/tasks/page.tsx` — インライン入力行を追加
+
+---
+
+## Task 2: リマインド強化 & スヌーズ機能
+
+### 現状
+- `src/lib/reminders.ts` でリマインダーを生成するが、スヌーズ機能がない
+- `ReminderAction` は `reschedule_today` | `reschedule_tomorrow` | `reschedule_week` | `release` | `open` のみ
+- リマインダーはUIに表示されるがスヌーズ不可
+
+### 要件
+
+**1. Reminder型にスヌーズアクションを追加**:
+`src/types/index.ts` の `ReminderAction.action` に以下を追加:
+```typescript
+action: 'reschedule_today' | 'reschedule_tomorrow' | 'reschedule_week' | 'release' | 'open' | 'snooze_15m' | 'snooze_1h' | 'snooze_3h' | 'snooze_tomorrow';
 ```
-idle → idling → idling_done → working → work_break → idling（ループ）
-                    ↓
-              idling_break → idling（ループ）
+
+**2. reminders.ts のアクションを強化**:
+`src/lib/reminders.ts` の `actions` 配列を以下に変更:
+```typescript
+const actions: ReminderAction[] = [
+  { label: "15分後", action: "snooze_15m" },
+  { label: "1時間後", action: "snooze_1h" },
+  { label: "明日にする", action: "reschedule_tomorrow" },
+  { label: "開く", action: "open" },
+];
 ```
 
-| State | 表示名 | タイマー | リングの色 | 説明 |
-|-------|--------|---------|-----------|------|
-| `idle` | 待機中... | 00:00（停止） | グレー（薄い） | 初期状態。Playボタンで開始 |
-| `idling` | アイドリング中... | 1分カウントダウン（60→0） | オレンジ（進行に応じて塗られる） | 1分だけのウォームアップ |
-| `idling_done` | （選択中） | 経過時間をカウントアップ | オレンジ（フル） | 1分経過後。「続行」or「休憩」を選択 |
-| `idling_break` | アイドリング休憩 | 1分カウントダウン（60→0） | ブルー | 休憩後、再びidlingへ |
-| `working` | 作業中 | カウントアップ（00:00→上へ） | オレンジ（フル） | 自由作業。スキップで休憩へ |
-| `work_break` | 休憩中 | 5分カウントダウン（300→0） | ブルー | 作業時間を表示。終了後idlingへ |
+**3. スヌーズ状態管理用hookを新規作成**:
+`src/hooks/useSnooze.ts` を新規作成:
+```typescript
+"use client";
+import { useState, useCallback, useEffect } from "react";
 
-## 遷移フロー詳細
+type SnoozedReminder = {
+  taskId: string;
+  until: number; // Unix timestamp (ms)
+};
 
-1. **idle → idling**: Playボタン押下
-2. **idling（1分経過）→ idling_done**: 自動遷移（タイマー音あり）
-3. **idling_done → working**: 「続行」ボタン押下
-4. **idling_done → idling_break**: 「休憩」ボタン押下
-5. **idling_break（1分経過）→ idling**: 自動遷移（タイマー音あり）、自動で再スタート
-6. **working → work_break**: スキップ（>）ボタン押下。作業時間を記録
-7. **work_break（5分経過）→ idling**: 自動遷移（タイマー音あり）、自動で再スタート
+const STORAGE_KEY = "sou-task:snoozed";
 
-## UI仕様
+export function useSnooze() {
+  const [snoozed, setSnoozed] = useState<SnoozedReminder[]>([]);
 
-### レイアウト（上から順）
+  // localStorage から復元
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved) as SnoozedReminder[];
+      // 期限切れを除外
+      const active = parsed.filter((s) => s.until > Date.now());
+      setSnoozed(active);
+    }
+  }, []);
 
-1. **ヘッダー**: 「← 集中モード」（既存の戻るリンク維持）
-2. **タスク表示**: 現在のフォーカスタスク名（既存ロジック維持）
-3. **円形タイマー**:
-   - 直径: w-64 h-64
-   - 外周リング: strokeWidth 6px
-   - リング色: オレンジ（`#F97316` = Tailwind orange-500）で作業系、ブルー（`#3B82F6` = Tailwind blue-500）で休憩系
-   - 背景リング: 薄いオレンジ or 薄いブルー（state に応じる）
-   - 中央: 時間表示（text-5xl font-extrabold） + ステータスラベル（text-xs、色付き）
-4. **コントロールボタン**（横並び3つ）:
-   - Play/Pause: 72x72 オレンジ丸ボタン（bg-orange-500）
-   - スキップ（>）: 48x48（ChevronRight アイコン）。次のフェーズへ進む
-   - リセット（↺）: 48x48（RotateCcw アイコン）。idleに戻す
-5. **メッセージカード**: 状態に応じたガイドテキスト（角丸カード内、bg-surface）
-6. **選択カード**（idling_done時のみ表示）:
-   - 「続行」カード: オレンジ背景（bg-orange-500 text-white）、アイコン + 説明テキスト
-   - 「休憩」カード: 白背景（border）、コーヒーアイコン + 説明テキスト
-   - 横並び2カラム（grid grid-cols-2 gap-3）
+  const snooze = useCallback((taskId: string, minutes: number) => {
+    const until = Date.now() + minutes * 60 * 1000;
+    setSnoozed((prev) => {
+      const next = [...prev.filter((s) => s.taskId !== taskId), { taskId, until }];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
-### 各ステートのメッセージ
+  const isSnoozed = useCallback(
+    (taskId: string) => snoozed.some((s) => s.taskId === taskId && s.until > Date.now()),
+    [snoozed],
+  );
 
-| State | メッセージ |
-|-------|---------|
-| `idle` | まずは1分間だけのアイドリング作業を始めましょう！\n1分だけ作業した後は休憩もできるのでまずは1分！ |
-| `idling` | アイドリング作業を1分だけ頑張りましょう...\n終了後にこのまま作業を続けるか休憩するかを選べます。\n（中央のスキップボタンで今すぐ選択可能） |
-| `idling_done` | アイドリング作業が終了しました。\nこのまま作業を継続するか一度休憩するかを選んでください。 |
-| `idling_break` | 1分の休憩を取りましょう。\n休憩終了後に再度1分間のアイドリング作業を行います。 |
-| `working` | ナイス継続です！この調子で気の向くまで存分に作業を実施しましょう。\n中央のスキップボタンを押すと休憩に入ることができます。 |
-| `work_break` | お疲れ様でした！先ほどの作業時間は{MM:SS}でした！\n5分間の休憩です。（中央のボタンでスキップ可能）\nSNSを見ると次動くのが大変なのでストレッチやコーヒー、軽い掃除などがお勧めですよ！ |
+  return { snooze, isSnoozed };
+}
+```
 
-### 選択カード（idling_done時）
+**4. リマインダー表示コンポーネントを新規作成**:
+`src/components/dashboard/ReminderBanner.tsx` を新規作成:
+- `generateReminders()` の結果を表示するバナーコンポーネント
+- 各リマインダーにスヌーズボタン（15分後、1時間後）を表示
+- スヌーズ中のリマインダーは非表示にする（`useSnooze` の `isSnoozed` で判定）
+- デザイン: `card-elevated` ベース、左にアイコン（Bell）、右にアクションボタン群
+- アニメーション: `animate-fade-in-up`
+- スヌーズボタンはコンパクトなpill型（`rounded-full px-2 py-0.5 text-[10px]`）
 
-**続行カード**:
-- 背景: オレンジ（bg-orange-500 text-white rounded-xl p-4）
-- アイコン: Monitor or Laptop（lucide-react）
-- テキスト: 「続行」「このまま作業を続行します」
+**5. ダッシュボードに組み込み**:
+`src/components/dashboard/DashboardTabs.tsx` の `activeTab === "today"` 内の `<OverdueBanner />` の直後に `<ReminderBanner />` を追加
 
-**休憩カード**:
-- 背景: 白（bg-white border rounded-xl p-4）
-- アイコン: Coffee（lucide-react）
-- テキスト: 「休憩」「1分の休憩を挟んで再度アイドリング作業を実施します」
+### 対象ファイル
+- `src/types/index.ts` — ReminderAction.action にスヌーズ追加
+- `src/lib/reminders.ts` — actionsをスヌーズ対応に変更
+- `src/hooks/useSnooze.ts` — 新規作成
+- `src/components/dashboard/ReminderBanner.tsx` — 新規作成
+- `src/components/dashboard/DashboardTabs.tsx` — ReminderBanner追加
 
-## 技術的な注意事項
+---
 
-- **既存のデザインシステム（CSS変数）を維持する**: `var(--color-foreground)`, `var(--color-surface)`, `var(--color-muted)` 等はそのまま使う
-- **オレンジ・ブルーの色は直接指定**: `#F97316`（オレンジ）、`#3B82F6`（ブルー）、`#FED7AA`（薄オレンジ）、`#BFDBFE`（薄ブルー）
-- **既存のAudio関連ロジック（AudioContext, playTimerSound, ensureAudioContext）はそのまま流用する**
-- **既存のuseTasks, useSettings hookはそのまま使う**（settingsからのfocusDuration/breakDurationは使わなくなるが、hookの呼び出し自体は残してOK）
-- **サブタスク表示（チェックリスト）は削除してOK**（アイドリング方式では不要）
-- **過集中アラート（2時間経過通知）は維持する**
-- **`src/app/focus/page.tsx` 1ファイルのみ変更する**。他のファイルは変更しない
-- **"use client" ディレクティブを先頭に維持する**
-- **lucide-react から必要なアイコンをインポート**: Play, Pause, RotateCcw, ChevronRight, Coffee, Monitor, Droplets, ArrowLeft
+## Task 3: チームOverviewの数値を動的更新
 
-## 完了条件
+### 現状
+- `useTeamMetrics.ts` が `/team-metrics.json` 静的ファイルをfetchしている
+- データが古いまま更新されない
 
-- [ ] 6つの全ステートが正しく遷移する
-- [ ] idle: 00:00表示、Play押下でidlingへ
-- [ ] idling: 1分カウントダウン、オレンジリング進行、終了でidling_doneへ
-- [ ] idling_done: 続行/休憩の選択カード表示、各ボタンが機能する
-- [ ] idling_break: 1分カウントダウン、ブルーリング、終了でidlingへ自動遷移
-- [ ] working: カウントアップ、オレンジリング全塗り、スキップでwork_breakへ
-- [ ] work_break: 5分カウントダウン、ブルーリング、作業時間表示、終了でidlingへ
-- [ ] リセットボタンでidleに戻る
-- [ ] 音が各フェーズ終了時に鳴る
-- [ ] 過集中アラート（2時間）が維持されている
-- [ ] `npm run build` が成功する
+### 要件
+
+**1. APIエンドポイントを新規作成**:
+`src/app/api/team-metrics/route.ts` を新規作成:
+```typescript
+import { NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import path from "path";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+export async function GET() {
+  try {
+    // public/team-metrics.json を読み込む（ビルド時にコピーされるため）
+    const filePath = path.join(process.cwd(), "public", "team-metrics.json");
+    const raw = await readFile(filePath, "utf-8");
+    const data = JSON.parse(raw);
+    return NextResponse.json(data, {
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
+    });
+  } catch {
+    return NextResponse.json(
+      { error: "team-metrics.json not found" },
+      { status: 404 },
+    );
+  }
+}
+```
+
+注意: `src/app/api/team-metrics/detail/route.ts` が既に存在する。新規の `route.ts` は `src/app/api/team-metrics/route.ts`（detailとは別パス）に作成すること。
+
+**2. useTeamMetrics hookを更新**:
+`src/hooks/useTeamMetrics.ts` のfetch先を変更:
+```typescript
+// 変更前:
+const { data, error, isLoading } = useSWR<TeamMetrics>("/team-metrics.json", fetcher, {
+  dedupingInterval: 300_000,
+  revalidateOnFocus: false,
+});
+
+// 変更後:
+const { data, error, isLoading } = useSWR<TeamMetrics>("/api/team-metrics", fetcher, {
+  dedupingInterval: 60_000,         // 1分に短縮
+  revalidateOnFocus: true,          // フォーカス時に再取得
+  refreshInterval: 300_000,         // 5分おきに自動更新
+});
+```
+
+**3. TeamOverviewに更新日時を表示**:
+`src/components/dashboard/TeamOverview.tsx` のヘッダー部分（「タップで詳細」のテキスト位置）に `generatedAt` を表示:
+```tsx
+<span className="text-[9px] text-[var(--color-muted)]">
+  {metrics.generatedAt
+    ? `更新: ${new Date(metrics.generatedAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
+    : "タップで詳細"}
+</span>
+```
+
+### 対象ファイル
+- `src/app/api/team-metrics/route.ts` — 新規作成
+- `src/hooks/useTeamMetrics.ts` — fetch先とオプション変更
+- `src/components/dashboard/TeamOverview.tsx` — 更新日時表示追加
+
+---
+
+## Task 4: UI全面リデザイン（洗練・モダン化）
+
+### 現状のデザインシステム
+- Apple/Linear inspired CSS variables（`globals.css`）
+- 角丸（`--radius-xl: 20px`）多用
+- shadow-card でカード浮遊感
+- 青（`#2563EB`）をprimary color
+
+### 要件
+
+**デザインコンセプト: "Calm Productivity" — 静謐で集中力を促すUI**
+
+**1. globals.css のデザイントークン更新** (`src/app/globals.css`):
+以下の変数を `@theme inline` ブロック内に追加する（既存変数は変更しない、追加のみ）:
+```css
+--color-gradient-start: #2563EB;
+--color-gradient-end: #7C3AED;
+--color-card-border: rgba(0, 0, 0, 0.04);
+```
+
+背景色を更新:
+```css
+--color-background: #F8F9FB;
+```
+
+シャドウを更新（既存を上書き）:
+```css
+--shadow-card: 0 1px 2px rgba(0,0,0,0.02), 0 2px 8px rgba(0,0,0,0.03);
+--shadow-card-hover: 0 2px 4px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.05);
+```
+
+`.glass` クラスを更新:
+```css
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+```
+
+**2. BottomNav のリデザイン** (`src/components/layout/BottomNav.tsx`):
+- デスクトップサイドバーのロゴ部分: 現在のグラデーション背景に「S」テキストを `<img src="/logo.png" alt="SOU Task" className="w-10 h-10 rounded-[var(--radius-md)]" />` に変更
+- モバイルのボトムナビの中央ボタン（+）にグラデーション: `from-[var(--color-gradient-start)] to-[var(--color-gradient-end)]`（`from-[var(--color-primary-light)] to-[var(--color-primary)]` を置き換え）
+
+**3. DashboardTabs の画面構成改善** (`src/components/dashboard/DashboardTabs.tsx`):
+- `max-w-3xl` → `max-w-2xl`（モバイルでの余白を確保）
+- セクション間の `space-y-8` → `space-y-6`（コンパクトに）
+
+**4. GreetingHeader の改善**:
+- `src/components/dashboard/GreetingHeader.tsx` を確認し、挨拶テキストのフォントサイズを `text-2xl` → `text-xl` に変更（存在する場合のみ）。日付部分を `text-xs text-[var(--color-muted)]` に統一
+
+**5. QuickActions のデザイン改善** (`src/components/dashboard/QuickActions.tsx`):
+- メモボタンと音声ボタンのサイズを `w-12 h-12` → `w-11 h-11` に統一
+- カードに `border border-[var(--color-card-border)]` を追加
+
+**6. TeamOverview のデザイン改善** (`src/components/dashboard/TeamOverview.tsx`):
+- メトリクスカードの `bg-[var(--color-surface-hover)]` → `bg-[var(--color-background)]` に変更
+- グリッド: `grid-cols-3` → `grid-cols-2 sm:grid-cols-3` に変更（小さい画面で見やすく）
+- カード内数値: `text-lg` → `text-xl` に変更
+
+**7. タスクページの微調整** (`src/app/tasks/page.tsx`):
+- `space-y-2.5` → `space-y-2`
+
+**重要な制約**:
+- 既存の CSS variables を壊さない。上書きは明記されたもののみ
+- Tailwind CSS 4 の `@theme inline` ブロック内に追加する
+- `btn-press`, `card-elevated`, `animate-*` クラスは変更しない
+
+### 対象ファイル
+- `src/app/globals.css` — デザイントークン追加・更新
+- `src/components/layout/BottomNav.tsx` — ロゴ・グラデーション
+- `src/components/dashboard/DashboardTabs.tsx` — レイアウト微調整
+- `src/components/dashboard/GreetingHeader.tsx` — テキストサイズ調整（存在する場合）
+- `src/components/dashboard/QuickActions.tsx` — デザイン微調整
+- `src/app/tasks/page.tsx` — カード間隔調整
+- `src/components/dashboard/TeamOverview.tsx` — グリッド・カラー調整
+
+---
+
+## Task 5: ロゴの適用
+
+### 要件
+1. `/public/logo.png` にロゴファイルが配置されていることを想定する
+2. `src/components/layout/BottomNav.tsx` のデスクトップサイドバーロゴを `<img>` タグに変更（Task 4で実施済み）
+3. `src/app/layout.tsx` の metadata に icons を設定:
+```typescript
+icons: {
+  icon: "/logo.png",
+  apple: "/logo.png",
+},
+```
+4. 既存の favicon 設定があれば `/logo.png` に置き換え
+
+### 対象ファイル
+- `src/components/layout/BottomNav.tsx` — Task 4で対応済み
+- `src/app/layout.tsx` — favicon/icon設定
+
+---
+
+## 実装順序
+1. Task 1（インライン入力化）
+2. Task 2（スヌーズ機能）
+3. Task 3（チーム数値動的更新）
+4. Task 4（UIリデザイン）
+5. Task 5（ロゴ適用）
+
+## ビルド確認
+全タスク完了後、`npm run build` が成功することを確認する。TypeScriptエラー、import不足、未使用変数がないこと。
