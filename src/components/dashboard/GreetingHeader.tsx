@@ -27,8 +27,8 @@ export function GreetingHeader() {
 
   return (
     <div className="animate-fade-in-up">
-      <h1 className="text-3xl font-bold tracking-tight text-[var(--color-foreground)]">{getGreeting()}</h1>
-      <p className="mt-2 text-sm text-[var(--color-muted-foreground)]">
+      <h1 className="text-xl font-bold tracking-tight text-[var(--color-foreground)]">{getGreeting()}</h1>
+      <p className="mt-2 text-xs text-[var(--color-muted)]">
         {getDateString()} ・ タスク{taskCount}件 ・ 予定{eventCount}件
       </p>
     </div>

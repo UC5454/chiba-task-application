@@ -17,7 +17,8 @@ const defaultSettings: ADHDSettings = {
 };
 
 const actions: ReminderAction[] = [
-  { label: "今日にする", action: "reschedule_today" },
+  { label: "15分後", action: "snooze_15m" },
+  { label: "1時間後", action: "snooze_1h" },
   { label: "明日にする", action: "reschedule_tomorrow" },
   { label: "開く", action: "open" },
 ];

@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "SOU Task",
   description: "千葉勇志専用タスク管理アプリ",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -20,7 +24,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#FAFAFA",
+  themeColor: "#F8F9FB",
 };
 
 export default function RootLayout({

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { OverdueSection } from "@/components/tasks/OverdueSection";
 import { TaskCard } from "@/components/tasks/TaskCard";
 import { TaskFilter } from "@/components/tasks/TaskFilter";
-import { InputDialog } from "@/components/ui/InputDialog";
 import { useToast } from "@/components/ui/ToastProvider";
 import { useTasks } from "@/hooks/useTasks";
 
@@ -13,15 +12,24 @@ type FilterType = "today" | "all" | "completed";
 
 export default function TasksPage() {
   const [filter, setFilter] = useState<FilterType>("today");
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [showInlineAdd, setShowInlineAdd] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const inlineInputRef = useRef<HTMLInputElement | null>(null);
+
   const { tasks, completionStats, mutate } = useTasks(filter);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (showInlineAdd) {
+      inlineInputRef.current?.focus();
+    }
+  }, [showInlineAdd]);
 
   const overdueTasks = tasks.filter((task) => !task.completed && (task.overduedays ?? 0) > 0);
   const filteredTasks = filter === "all" ? tasks.filter((task) => !task.completed && (task.overduedays ?? 0) === 0) : tasks;
 
-  const submitQuickAdd = async (values: Record<string, string>) => {
-    const title = values.title?.trim();
+  const submitQuickAdd = async () => {
+    const title = newTaskTitle.trim();
     if (!title) {
       toast.error("タスク名を入力してね。");
       return;
@@ -42,12 +50,18 @@ export default function TasksPage() {
         throw new Error(body?.error ?? "操作に失敗しました");
       }
       toast.success("タスクを追加したよ。");
-      setQuickAddOpen(false);
+      setNewTaskTitle("");
       await mutate();
+      requestAnimationFrame(() => inlineInputRef.current?.focus());
     } catch (error) {
       console.error(error);
       toast.error("追加できなかった。もう一度試してみてね。");
     }
+  };
+
+  const cancelInlineAdd = () => {
+    setNewTaskTitle("");
+    setShowInlineAdd(false);
   };
 
   return (
@@ -55,7 +69,7 @@ export default function TasksPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">タスク</h1>
         <button
-          onClick={() => setQuickAddOpen(true)}
+          onClick={() => setShowInlineAdd(true)}
           className="text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/8 px-3 py-1.5 rounded-full hover:bg-[var(--color-primary)]/15 transition-colors"
         >
           + 追加
@@ -85,7 +99,30 @@ export default function TasksPage() {
 
       {filter !== "completed" && overdueTasks.length > 0 && <OverdueSection tasks={overdueTasks} onChanged={mutate} />}
 
-      <div className="space-y-2.5">
+      <div className="space-y-2">
+        {showInlineAdd && (
+          <div className="card-elevated p-3 animate-fade-in-up">
+            <input
+              ref={inlineInputRef}
+              type="text"
+              value={newTaskTitle}
+              onChange={(event) => setNewTaskTitle(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void submitQuickAdd();
+                }
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  cancelInlineAdd();
+                }
+              }}
+              placeholder="タスク名を入力してEnter"
+              className="w-full px-3 py-2 text-sm bg-[var(--color-background)] rounded-[var(--radius-md)] border border-[var(--color-border-light)] text-[var(--color-foreground)] placeholder:text-[var(--color-muted)]"
+            />
+          </div>
+        )}
+
         {filteredTasks.map((task, i) => (
           <div key={task.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 0.05}s` }}>
             <TaskCard task={task} onChanged={mutate} />
@@ -99,14 +136,6 @@ export default function TasksPage() {
           </div>
         )}
       </div>
-
-      <InputDialog
-        open={quickAddOpen}
-        onCancel={() => setQuickAddOpen(false)}
-        onSubmit={submitQuickAdd}
-        title="タスクを追加"
-        fields={[{ name: "title", label: "タスク名", placeholder: "タスク名を入力", required: true }]}
-      />
     </div>
   );
 }

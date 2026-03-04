@@ -138,7 +138,7 @@ export function TeamOverview() {
             <div className="h-4 w-4 rounded bg-[var(--color-border-light)]" />
             <div className="h-4 w-32 rounded bg-[var(--color-border-light)]" />
           </div>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-20 rounded-[var(--radius-lg)] bg-[var(--color-border-light)]" />
             ))}
@@ -166,11 +166,15 @@ export function TeamOverview() {
             <BarChart3 size={16} className="text-[var(--color-primary)]" />
             <h3 className="text-sm font-bold text-[var(--color-foreground)]">チーム Overview</h3>
           </div>
-          <span className="text-[9px] text-[var(--color-muted)]">タップで詳細</span>
+          <span className="text-[9px] text-[var(--color-muted)]">
+            {metrics.generatedAt
+              ? `更新: ${new Date(metrics.generatedAt).toLocaleDateString("ja-JP", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
+              : "タップで詳細"}
+          </span>
         </div>
 
         {/* 6メトリクスカード */}
-        <div className="grid grid-cols-3 gap-2.5 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
           {CARDS.map((card) => {
             const Icon = card.icon;
             const isActive = activeDetail === card.key;
@@ -178,7 +182,7 @@ export function TeamOverview() {
               <button
                 key={card.key}
                 onClick={() => handleCardClick(card.key)}
-                className={`bg-[var(--color-surface-hover)] rounded-[var(--radius-lg)] p-3 text-center transition-all ${
+                className={`bg-[var(--color-background)] rounded-[var(--radius-lg)] p-3 text-center transition-all ${
                   isActive ? "ring-2 ring-[var(--color-primary)] ring-offset-1" : ""
                 }`}
               >
@@ -186,7 +190,7 @@ export function TeamOverview() {
                   <Icon size={12} className={card.iconColor} />
                   <span className="text-[10px] text-[var(--color-muted)]">{card.label}</span>
                 </div>
-                <p className="text-lg font-extrabold text-[var(--color-foreground)]">
+                <p className="text-xl font-extrabold text-[var(--color-foreground)]">
                   {card.getValue(metrics.summary)}
                   <span className="text-xs font-normal text-[var(--color-muted)]">{card.getSubtext(metrics)}</span>
                 </p>

@@ -6,6 +6,7 @@ import { DashboardSegmentControl } from "@/components/dashboard/DashboardSegment
 import { GreetingHeader } from "@/components/dashboard/GreetingHeader";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { OverdueBanner } from "@/components/dashboard/OverdueBanner";
+import { ReminderBanner } from "@/components/dashboard/ReminderBanner";
 import { TodayTasks } from "@/components/dashboard/TodayTasks";
 import { TodaySchedule } from "@/components/dashboard/TodaySchedule";
 import { StreakCard } from "@/components/dashboard/StreakCard";
@@ -53,7 +54,7 @@ export function DashboardTabs() {
   const reportsBadge = aiUnread + dgUnread;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
       <GreetingHeader />
       <DashboardSegmentControl
         activeTab={activeTab}
@@ -65,6 +66,7 @@ export function DashboardTabs() {
         <>
           <QuickActions />
           <OverdueBanner />
+          <ReminderBanner />
           <TodayTasks />
           <TodaySchedule />
           <StreakCard />

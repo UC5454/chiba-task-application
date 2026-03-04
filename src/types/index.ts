@@ -112,7 +112,7 @@ export interface Reminder {
 
 export interface ReminderAction {
   label: string;
-  action: 'reschedule_today' | 'reschedule_tomorrow' | 'reschedule_week' | 'release' | 'open';
+  action: 'reschedule_today' | 'reschedule_tomorrow' | 'reschedule_week' | 'release' | 'open' | 'snooze_15m' | 'snooze_1h' | 'snooze_3h' | 'snooze_tomorrow';
 }
 
 // AI社員日報

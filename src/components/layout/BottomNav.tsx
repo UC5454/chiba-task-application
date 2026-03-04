@@ -74,7 +74,7 @@ export function BottomNav() {
                 <button
                   key={item.href}
                   onClick={handleQuickAdd}
-                  className="relative -mt-6 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-b from-[var(--color-primary-light)] to-[var(--color-primary)] text-white active:scale-95 transition-transform"
+                  className="relative -mt-6 flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-b from-[var(--color-gradient-start)] to-[var(--color-gradient-end)] text-white active:scale-95 transition-transform"
                   style={{ boxShadow: "0 4px 16px rgba(37,99,235,0.3)" }}
                   aria-label="タスクまたはメモを追加"
                 >
@@ -103,9 +103,7 @@ export function BottomNav() {
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 flex-col bg-[var(--color-surface)] z-50" style={{ boxShadow: "var(--shadow-sidebar)" }}>
         <div className="p-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[var(--radius-md)] bg-gradient-to-br from-[var(--color-primary-light)] to-[var(--color-primary)] flex items-center justify-center">
-              <span className="text-white font-bold text-lg">S</span>
-            </div>
+            <img src="/logo.png" alt="SOU Task" className="w-10 h-10 rounded-[var(--radius-md)]" />
             <div>
               <h1 className="font-bold text-lg text-[var(--color-foreground)]">SOU Task</h1>
               <p className="text-xs text-[var(--color-muted)]">Personal Task Manager</p>

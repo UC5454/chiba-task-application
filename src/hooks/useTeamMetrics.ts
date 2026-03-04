@@ -24,9 +24,10 @@ export type TeamMetrics = {
 const fetcher = (url: string) => fetch(url).then((r) => r.json()) as Promise<TeamMetrics>;
 
 export function useTeamMetrics() {
-  const { data, error, isLoading } = useSWR<TeamMetrics>("/team-metrics.json", fetcher, {
-    dedupingInterval: 300_000,
-    revalidateOnFocus: false,
+  const { data, error, isLoading } = useSWR<TeamMetrics>("/api/team-metrics", fetcher, {
+    dedupingInterval: 60_000,
+    revalidateOnFocus: true,
+    refreshInterval: 300_000,
   });
 
   return { metrics: data ?? null, isLoading, error };
