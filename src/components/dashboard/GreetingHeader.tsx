@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import { useCalendar } from "@/hooks/useCalendar";
 import { useTasks } from "@/hooks/useTasks";
 
@@ -26,11 +28,14 @@ export function GreetingHeader() {
   const eventCount = eventsLoading && !hasError ? "..." : `${events.length}`;
 
   return (
-    <div className="animate-fade-in-up">
-      <h1 className="text-xl font-bold tracking-tight text-[var(--color-foreground)]">{getGreeting()}</h1>
-      <p className="mt-2 text-xs text-[var(--color-muted)]">
-        {getDateString()} ・ タスク{taskCount}件 ・ 予定{eventCount}件
-      </p>
+    <div className="animate-fade-in-up flex items-center gap-3">
+      <Image src="/logo.png" alt="SOU Task" width={40} height={40} className="rounded-[var(--radius-md)] md:hidden" priority />
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-[var(--color-foreground)]">{getGreeting()}</h1>
+        <p className="mt-1 text-xs text-[var(--color-muted)]">
+          {getDateString()} ・ タスク{taskCount}件 ・ 予定{eventCount}件
+        </p>
+      </div>
     </div>
   );
 }

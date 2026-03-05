@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Home, CheckSquare, Plus, StickyNote, Target, Settings } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -103,7 +104,7 @@ export function BottomNav() {
       <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 flex-col bg-[var(--color-surface)] z-50" style={{ boxShadow: "var(--shadow-sidebar)" }}>
         <div className="p-6">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="SOU Task" className="w-10 h-10 rounded-[var(--radius-md)]" />
+            <Image src="/logo.png" alt="SOU Task" width={40} height={40} className="rounded-[var(--radius-md)]" priority />
             <div>
               <h1 className="font-bold text-lg text-[var(--color-foreground)]">SOU Task</h1>
               <p className="text-xs text-[var(--color-muted)]">Personal Task Manager</p>
