@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 
 import { getAccessTokenFromRefreshToken } from "@/lib/google-auth";
 import { createTask } from "@/lib/google-tasks";
@@ -50,10 +51,6 @@ async function verifySlackRequest(body: string, headers: Headers): Promise<boole
   return computed === signature;
 }
 
-// Dedup: track processed events to prevent double-processing
-// Slack retries events if we don't respond quickly enough
-const processedEvents = new Set<string>();
-
 type SlackEvent =
   | { type: "url_verification"; challenge: string }
   | {
@@ -91,20 +88,7 @@ export async function POST(request: Request) {
 
   // Step 2: Handle event callbacks
   if (payload.type === "event_callback") {
-    const { event, event_id } = payload;
-
-    // Dedup check
-    if (processedEvents.has(event_id)) {
-      return NextResponse.json({ ok: true });
-    }
-    processedEvents.add(event_id);
-    // Clean up old events (keep last 1000)
-    if (processedEvents.size > 1000) {
-      const entries = [...processedEvents];
-      for (let i = 0; i < 500; i++) {
-        processedEvents.delete(entries[i]);
-      }
-    }
+    const { event } = payload;
 
     // Only handle reaction_added events for messages
     if (event.type !== "reaction_added" || event.item.type !== "message") {
@@ -116,16 +100,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // Process task creation in background (respond to Slack within 3s)
     const channel = event.item.channel;
     const messageTs = event.item.ts;
     const reactingUser = event.user;
 
-    // Fire and forget — Slack needs a response within 3 seconds
-    handleTaskCreation(channel, messageTs, reactingUser).catch((err) => {
-      console.error("Slack task creation error:", err);
-    });
+    // Use waitUntil to keep the serverless function alive for background work
+    waitUntil(
+      handleTaskCreation(channel, messageTs, reactingUser).catch((err) => {
+        console.error("Slack task creation error:", err);
+      }),
+    );
 
+    // Respond immediately to Slack (must be within 3 seconds)
     return NextResponse.json({ ok: true });
   }
 
