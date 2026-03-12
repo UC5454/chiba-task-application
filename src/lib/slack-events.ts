@@ -32,72 +32,108 @@ type SlackUserProfile = {
  * thread replies (conversations.replies).
  */
 export async function getSlackMessage(channel: string, messageTs: string): Promise<SlackMessage | null> {
-  // 1. Try conversations.history (works for top-level messages)
-  const histRes = await fetch("https://slack.com/api/conversations.history", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${READ_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      channel,
-      latest: messageTs,
-      inclusive: true,
-      limit: 1,
-    }),
-  });
+  console.log("[slack-events] getSlackMessage start", { channel, messageTs });
 
-  const histData = (await histRes.json()) as { ok: boolean; messages?: SlackMessage[]; error?: string };
+  try {
+    const histRes = await fetch("https://slack.com/api/conversations.history", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${READ_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel,
+        latest: messageTs,
+        inclusive: true,
+        limit: 1,
+      }),
+    });
 
-  if (histData.ok && histData.messages?.length && histData.messages[0].ts === messageTs) {
-    return histData.messages[0];
+    const histData = (await histRes.json()) as { ok: boolean; messages?: SlackMessage[]; error?: string };
+    if (histData.ok && histData.messages?.length && histData.messages[0].ts === messageTs) {
+      console.log("[slack-events] getSlackMessage found via history", { channel, messageTs });
+      return histData.messages[0];
+    }
+
+    if (!histData.ok) {
+      console.error("[slack-events] conversations.history failed", { channel, messageTs, error: histData.error });
+    }
+  } catch (error) {
+    console.error("[slack-events] conversations.history threw", { channel, messageTs, error });
   }
 
-  // 2. Not a top-level message — search thread replies
-  // Get recent top-level messages that might be the thread parent
-  const nearbyRes = await fetch("https://slack.com/api/conversations.history", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${READ_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      channel,
-      latest: messageTs,
-      inclusive: true,
-      limit: 10,
-    }),
-  });
+  try {
+    const nearbyRes = await fetch("https://slack.com/api/conversations.history", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${READ_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel,
+        latest: messageTs,
+        inclusive: true,
+        limit: 10,
+      }),
+    });
 
-  const nearbyData = (await nearbyRes.json()) as { ok: boolean; messages?: (SlackMessage & { reply_count?: number })[] };
+    const nearbyData = (await nearbyRes.json()) as { ok: boolean; messages?: (SlackMessage & { reply_count?: number })[]; error?: string };
 
-  if (nearbyData.ok && nearbyData.messages) {
-    for (const msg of nearbyData.messages) {
-      if (msg.reply_count && msg.reply_count > 0) {
-        const threadRes = await fetch("https://slack.com/api/conversations.replies", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${READ_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            channel,
-            ts: msg.ts,
-            latest: messageTs,
-            inclusive: true,
-          }),
-        });
+    if (nearbyData.ok && nearbyData.messages) {
+      for (const msg of nearbyData.messages) {
+        if (msg.reply_count && msg.reply_count > 0) {
+          try {
+            const threadRes = await fetch("https://slack.com/api/conversations.replies", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${READ_TOKEN}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                channel,
+                ts: msg.ts,
+                latest: messageTs,
+                inclusive: true,
+              }),
+            });
 
-        const threadData = (await threadRes.json()) as { ok: boolean; messages?: SlackMessage[] };
-        if (threadData.ok && threadData.messages) {
-          const target = threadData.messages.find((m) => m.ts === messageTs);
-          if (target) return target;
+            const threadData = (await threadRes.json()) as { ok: boolean; messages?: SlackMessage[]; error?: string };
+            if (threadData.ok && threadData.messages) {
+              const target = threadData.messages.find((m) => m.ts === messageTs);
+              if (target) {
+                console.log("[slack-events] getSlackMessage found via replies", {
+                  channel,
+                  messageTs,
+                  parentTs: msg.ts,
+                });
+                return target;
+              }
+            } else if (!threadData.ok) {
+              console.error("[slack-events] conversations.replies failed", {
+                channel,
+                messageTs,
+                parentTs: msg.ts,
+                error: threadData.error,
+              });
+            }
+          } catch (error) {
+            console.error("[slack-events] conversations.replies threw", {
+              channel,
+              messageTs,
+              parentTs: msg.ts,
+              error,
+            });
+          }
         }
       }
+    } else if (!nearbyData.ok) {
+      console.error("[slack-events] nearby conversations.history failed", { channel, messageTs, error: nearbyData.error });
     }
+  } catch (error) {
+    console.error("[slack-events] nearby conversations.history threw", { channel, messageTs, error });
   }
 
-  console.error("Slack message not found:", { channel, messageTs });
+  console.error("[slack-events] message not found", { channel, messageTs });
   return null;
 }
 
@@ -105,65 +141,100 @@ export async function getSlackMessage(channel: string, messageTs: string): Promi
  * Get permalink for a Slack message
  */
 export async function getMessagePermalink(channel: string, messageTs: string): Promise<string | null> {
-  const res = await fetch(`https://slack.com/api/chat.getPermalink?channel=${channel}&message_ts=${messageTs}`, {
-    headers: { Authorization: `Bearer ${READ_TOKEN}` },
-  });
+  try {
+    const res = await fetch(`https://slack.com/api/chat.getPermalink?channel=${channel}&message_ts=${messageTs}`, {
+      headers: { Authorization: `Bearer ${READ_TOKEN}` },
+    });
 
-  const data = (await res.json()) as { ok: boolean; permalink?: string };
-  return data.ok ? (data.permalink ?? null) : null;
+    const data = (await res.json()) as { ok: boolean; permalink?: string; error?: string };
+    if (!data.ok) {
+      console.error("[slack-events] chat.getPermalink failed", { channel, messageTs, error: data.error });
+      return null;
+    }
+
+    return data.permalink ?? null;
+  } catch (error) {
+    console.error("[slack-events] chat.getPermalink threw", { channel, messageTs, error });
+    return null;
+  }
 }
 
 /**
  * Get Slack user's display name
  */
 export async function getSlackUserName(userId: string): Promise<string> {
-  const res = await fetch(`https://slack.com/api/users.info?user=${userId}`, {
-    headers: { Authorization: `Bearer ${READ_TOKEN}` },
-  });
+  try {
+    const res = await fetch(`https://slack.com/api/users.info?user=${userId}`, {
+      headers: { Authorization: `Bearer ${READ_TOKEN}` },
+    });
 
-  const data = (await res.json()) as { ok: boolean; user?: { profile: SlackUserProfile } };
+    const data = (await res.json()) as { ok: boolean; user?: { profile: SlackUserProfile }; error?: string };
 
-  if (!data.ok || !data.user) return userId;
+    if (!data.ok || !data.user) {
+      console.error("[slack-events] users.info failed", { userId, error: data.error });
+      return userId;
+    }
 
-  return data.user.profile.display_name || data.user.profile.real_name || userId;
+    return data.user.profile.display_name || data.user.profile.real_name || userId;
+  } catch (error) {
+    console.error("[slack-events] users.info threw", { userId, error });
+    return userId;
+  }
 }
 
 /**
  * Post a reply in a Slack thread
  */
 export async function postSlackReply(channel: string, threadTs: string, text: string): Promise<boolean> {
-  const res = await fetch("https://slack.com/api/chat.postMessage", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${SLACK_BOT_TOKEN || READ_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      channel,
-      thread_ts: threadTs,
-      text,
-    }),
-  });
+  try {
+    const res = await fetch("https://slack.com/api/chat.postMessage", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SLACK_BOT_TOKEN || READ_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel,
+        thread_ts: threadTs,
+        text,
+      }),
+    });
 
-  const data = (await res.json()) as { ok: boolean; error?: string };
+    const data = (await res.json()) as { ok: boolean; error?: string };
 
-  if (!data.ok) {
-    console.error("Slack chat.postMessage failed:", data.error);
+    if (!data.ok) {
+      console.error("[slack-events] chat.postMessage failed", { channel, threadTs, error: data.error });
+    } else {
+      console.log("[slack-events] chat.postMessage succeeded", { channel, threadTs });
+    }
+
+    return data.ok;
+  } catch (error) {
+    console.error("[slack-events] chat.postMessage threw", { channel, threadTs, error });
+    return false;
   }
-
-  return data.ok;
 }
 
 /**
  * Get channel name from channel ID
  */
 export async function getChannelName(channelId: string): Promise<string> {
-  const res = await fetch(`https://slack.com/api/conversations.info?channel=${channelId}`, {
-    headers: { Authorization: `Bearer ${READ_TOKEN}` },
-  });
+  try {
+    const res = await fetch(`https://slack.com/api/conversations.info?channel=${channelId}`, {
+      headers: { Authorization: `Bearer ${READ_TOKEN}` },
+    });
 
-  const data = (await res.json()) as { ok: boolean; channel?: { name: string } };
-  return data.ok ? (data.channel?.name ?? channelId) : channelId;
+    const data = (await res.json()) as { ok: boolean; channel?: { name: string }; error?: string };
+    if (!data.ok) {
+      console.error("[slack-events] conversations.info failed", { channelId, error: data.error });
+      return channelId;
+    }
+
+    return data.channel?.name ?? channelId;
+  } catch (error) {
+    console.error("[slack-events] conversations.info threw", { channelId, error });
+    return channelId;
+  }
 }
 
 /**

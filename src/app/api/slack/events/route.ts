@@ -66,59 +66,98 @@ type SlackEvent =
     };
 
 export async function POST(request: Request) {
-  const rawBody = await request.text();
+  console.log("[slack/events] request received");
 
-  // Verify Slack signature
-  if (SLACK_SIGNING_SECRET) {
-    const valid = await verifySlackRequest(rawBody, request.headers);
-    if (!valid) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-  }
+  try {
+    const rawBody = await request.text();
+    console.log("[slack/events] request body read", { bodyLength: rawBody.length });
 
-  const payload = JSON.parse(rawBody) as SlackEvent;
-
-  // Handle Slack URL verification challenge
-  if (payload.type === "url_verification") {
-    return NextResponse.json({ challenge: payload.challenge });
-  }
-
-  // Handle event callbacks
-  if (payload.type === "event_callback") {
-    const { event } = payload;
-
-    if (event.type !== "reaction_added" || event.item.type !== "message") {
-      return NextResponse.json({ ok: true });
+    if (SLACK_SIGNING_SECRET) {
+      const valid = await verifySlackRequest(rawBody, request.headers);
+      console.log("[slack/events] signature verification finished", { valid });
+      if (!valid) {
+        console.log("[slack/events] invalid signature");
+        return NextResponse.json({ ok: true, ignored: "invalid_signature" }, { status: 200 });
+      }
+    } else {
+      console.log("[slack/events] signing secret missing, skipping verification");
     }
 
-    if (!ALL_TASK_EMOJIS.includes(event.reaction)) {
-      return NextResponse.json({ ok: true });
-    }
-
-    // Await task creation directly — total processing is well under Vercel's 10s timeout
+    let payload: SlackEvent;
     try {
-      await handleTaskCreation(event.item.channel, event.item.ts, event.user);
-    } catch (err) {
-      console.error("Slack task creation error:", err);
+      payload = JSON.parse(rawBody) as SlackEvent;
+    } catch (error) {
+      console.error("[slack/events] failed to parse request body", error);
+      return NextResponse.json({ ok: true, ignored: "invalid_json" }, { status: 200 });
     }
 
-    return NextResponse.json({ ok: true });
-  }
+    console.log("[slack/events] payload parsed", { type: payload.type });
 
-  return NextResponse.json({ ok: true });
+    if (payload.type === "url_verification") {
+      console.log("[slack/events] responding to url_verification challenge");
+      return NextResponse.json({ challenge: payload.challenge }, { status: 200 });
+    }
+
+    if (payload.type === "event_callback") {
+      const { event } = payload;
+      console.log("[slack/events] event callback received", {
+        eventType: event.type,
+        reaction: event.reaction,
+        itemType: event.item.type,
+        channel: event.item.channel,
+        ts: event.item.ts,
+      });
+
+      if (event.type !== "reaction_added" || event.item.type !== "message") {
+        console.log("[slack/events] event ignored", { reason: "unsupported_event" });
+        return NextResponse.json({ ok: true, ignored: "unsupported_event" }, { status: 200 });
+      }
+
+      if (!ALL_TASK_EMOJIS.includes(event.reaction)) {
+        console.log("[slack/events] reaction ignored", { reaction: event.reaction });
+        return NextResponse.json({ ok: true, ignored: "non_task_reaction" }, { status: 200 });
+      }
+
+      console.log("[slack/events] task creation started", {
+        channel: event.item.channel,
+        ts: event.item.ts,
+        reactingUser: event.user,
+      });
+
+      // Await task creation directly — total processing is well under Vercel's 10s timeout
+      try {
+        await handleTaskCreation(event.item.channel, event.item.ts, event.user);
+        console.log("[slack/events] task creation finished");
+      } catch (err) {
+        console.error("[slack/events] task creation error", err);
+      }
+
+      console.log("[slack/events] request completed");
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    console.log("[slack/events] payload ignored", { reason: "unknown_payload_type" });
+    return NextResponse.json({ ok: true, ignored: "unknown_payload_type" }, { status: 200 });
+  } catch (error) {
+    console.error("[slack/events] unexpected POST error", error);
+    return NextResponse.json({ ok: true, ignored: "unexpected_error" }, { status: 200 });
+  }
 }
 
 async function handleTaskCreation(channel: string, messageTs: string, reactingUser: string) {
+  console.log("[slack/events] handleTaskCreation started", { channel, messageTs, reactingUser });
+
   // 1. Get the message content
   const message = await getSlackMessage(channel, messageTs);
   if (!message) {
-    console.error("Could not fetch Slack message");
+    console.error("[slack/events] could not fetch Slack message", { channel, messageTs });
     return;
   }
 
   // 2. Clean up the message text for task title
   const rawText = cleanMessageText(message.text);
   if (!rawText) {
+    console.log("[slack/events] message text empty after cleanup", { channel, messageTs });
     await postSlackReply(channel, messageTs, "メッセージが空のためタスクを作成できませんでした。");
     return;
   }
@@ -131,6 +170,7 @@ async function handleTaskCreation(channel: string, messageTs: string, reactingUs
     getChannelName(channel),
     getSlackUserName(reactingUser),
   ]);
+  console.log("[slack/events] slack context resolved", { permalink, channelName, userName });
 
   // 4. Build task notes
   const today = new Date().toISOString().slice(0, 10);
@@ -146,7 +186,7 @@ async function handleTaskCreation(channel: string, messageTs: string, reactingUs
   // 5. Get Google access token
   const accessToken = await getAccessTokenFromRefreshToken();
   if (!accessToken) {
-    console.error("Could not get Google access token for Slack task creation");
+    console.error("[slack/events] could not get Google access token");
     await postSlackReply(channel, messageTs, "Google認証エラーのためタスクを作成できませんでした。");
     return;
   }
@@ -158,10 +198,11 @@ async function handleTaskCreation(channel: string, messageTs: string, reactingUs
     dueDate: `${today}T00:00:00.000Z`,
     priority: 2,
   });
+  console.log("[slack/events] google task created", { googleTaskId: createdTask.googleTaskId, title });
 
   // 7. Save metadata to Supabase
   const supabase = getSupabaseAdminClient();
-  await supabase.from("task_metadata").upsert(
+  const { error } = await supabase.from("task_metadata").upsert(
     {
       google_task_id: createdTask.googleTaskId,
       priority: 2,
@@ -171,7 +212,13 @@ async function handleTaskCreation(channel: string, messageTs: string, reactingUs
     },
     { onConflict: "google_task_id" },
   );
+  if (error) {
+    console.error("[slack/events] failed to upsert task metadata", error);
+  } else {
+    console.log("[slack/events] task metadata upserted", { googleTaskId: createdTask.googleTaskId });
+  }
 
   // 8. Reply in Slack thread
   await postSlackReply(channel, messageTs, `SOU Task に追加しました: "${title}"\n期限: ${today}`);
+  console.log("[slack/events] handleTaskCreation completed", { channel, messageTs });
 }
