@@ -68,6 +68,13 @@ type SlackEvent =
 export async function POST(request: Request) {
   console.log("[slack/events] request received");
 
+  // Slack retries if no response within 3s. Ignore retries to prevent double processing.
+  const retryNum = request.headers.get("x-slack-retry-num");
+  if (retryNum) {
+    console.log("[slack/events] ignoring Slack retry", { retryNum });
+    return NextResponse.json({ ok: true, ignored: "retry" }, { status: 200 });
+  }
+
   try {
     const rawBody = await request.text();
     console.log("[slack/events] request body read", { bodyLength: rawBody.length });
