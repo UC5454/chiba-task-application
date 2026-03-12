@@ -5,7 +5,12 @@
  * this module fetches the message text and creates a task in Google Tasks + Supabase.
  */
 
+// User Token (xoxp-) — can access all channels the user is in, no bot invite needed
+const SLACK_USER_TOKEN = process.env.SLACK_USER_TOKEN ?? "";
+// Bot Token (xoxb-) — used for posting replies as the bot
 const SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN ?? "";
+// Read token: prefer user token for reading (no invite needed), fallback to bot token
+const READ_TOKEN = SLACK_USER_TOKEN || SLACK_BOT_TOKEN;
 
 type SlackMessage = {
   text: string;
@@ -27,7 +32,7 @@ export async function getSlackMessage(channel: string, messageTs: string): Promi
   const res = await fetch("https://slack.com/api/conversations.history", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${SLACK_BOT_TOKEN}`,
+      Authorization: `Bearer ${READ_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -53,7 +58,7 @@ export async function getSlackMessage(channel: string, messageTs: string): Promi
  */
 export async function getMessagePermalink(channel: string, messageTs: string): Promise<string | null> {
   const res = await fetch(`https://slack.com/api/chat.getPermalink?channel=${channel}&message_ts=${messageTs}`, {
-    headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
+    headers: { Authorization: `Bearer ${READ_TOKEN}` },
   });
 
   const data = (await res.json()) as { ok: boolean; permalink?: string };
@@ -65,7 +70,7 @@ export async function getMessagePermalink(channel: string, messageTs: string): P
  */
 export async function getSlackUserName(userId: string): Promise<string> {
   const res = await fetch(`https://slack.com/api/users.info?user=${userId}`, {
-    headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
+    headers: { Authorization: `Bearer ${READ_TOKEN}` },
   });
 
   const data = (await res.json()) as { ok: boolean; user?: { profile: SlackUserProfile } };
@@ -82,7 +87,7 @@ export async function postSlackReply(channel: string, threadTs: string, text: st
   const res = await fetch("https://slack.com/api/chat.postMessage", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${SLACK_BOT_TOKEN}`,
+      Authorization: `Bearer ${SLACK_BOT_TOKEN || READ_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -106,7 +111,7 @@ export async function postSlackReply(channel: string, threadTs: string, text: st
  */
 export async function getChannelName(channelId: string): Promise<string> {
   const res = await fetch(`https://slack.com/api/conversations.info?channel=${channelId}`, {
-    headers: { Authorization: `Bearer ${SLACK_BOT_TOKEN}` },
+    headers: { Authorization: `Bearer ${READ_TOKEN}` },
   });
 
   const data = (await res.json()) as { ok: boolean; channel?: { name: string } };
