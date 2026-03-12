@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
-import { Check, ChevronRight, Clock } from "lucide-react";
+import { Check, ChevronRight, Clock, MessageSquare } from "lucide-react";
 import type { Task, Priority } from "@/types";
 import { useToast } from "@/components/ui/ToastProvider";
+
+function extractSlackLink(notes?: string): string | null {
+  if (!notes) return null;
+  const match = notes.match(/Link:\s*(https:\/\/[^\s]*slack\.com\/archives\/[^\s]+)/);
+  return match?.[1] ?? null;
+}
 
 const priorityColors: Record<Priority, string> = {
   1: "bg-[var(--color-priority-high)]",
@@ -55,6 +61,7 @@ interface TaskCardProps {
 export function TaskCard({ task, onChanged }: TaskCardProps) {
   const [completed, setCompleted] = useState(task.completed);
   const { toast } = useToast();
+  const slackLink = extractSlackLink(task.notes);
 
   const handleComplete = async (e: MouseEvent) => {
     e.preventDefault();
@@ -113,6 +120,18 @@ export function TaskCard({ task, onChanged }: TaskCardProps) {
             {task.title}
           </p>
           <div className="flex items-center gap-2 mt-1">
+            {slackLink && (
+              <a
+                href={slackLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#4A154B]/8 text-[#4A154B] hover:bg-[#4A154B]/15 transition-colors"
+              >
+                <MessageSquare size={10} />
+                Slack
+              </a>
+            )}
             {task.category && (
               <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[var(--color-primary)]/8 text-[var(--color-primary)]">
                 {categoryLabels[task.category] || task.category}
