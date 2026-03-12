@@ -17,6 +17,7 @@ type SlackMessage = {
   user: string;
   ts: string;
   channel: string;
+  thread_ts?: string;
   permalink?: string;
 };
 
@@ -26,10 +27,13 @@ type SlackUserProfile = {
 };
 
 /**
- * Fetch a single message from Slack using conversations.history
+ * Fetch a single message from Slack.
+ * Handles both top-level messages (conversations.history) and
+ * thread replies (conversations.replies).
  */
 export async function getSlackMessage(channel: string, messageTs: string): Promise<SlackMessage | null> {
-  const res = await fetch("https://slack.com/api/conversations.history", {
+  // 1. Try conversations.history (works for top-level messages)
+  const histRes = await fetch("https://slack.com/api/conversations.history", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${READ_TOKEN}`,
@@ -43,14 +47,58 @@ export async function getSlackMessage(channel: string, messageTs: string): Promi
     }),
   });
 
-  const data = (await res.json()) as { ok: boolean; messages?: SlackMessage[]; error?: string };
+  const histData = (await histRes.json()) as { ok: boolean; messages?: SlackMessage[]; error?: string };
 
-  if (!data.ok || !data.messages?.length) {
-    console.error("Slack conversations.history failed:", data.error);
-    return null;
+  if (histData.ok && histData.messages?.length && histData.messages[0].ts === messageTs) {
+    return histData.messages[0];
   }
 
-  return data.messages[0];
+  // 2. Not a top-level message — search thread replies
+  // Get recent top-level messages that might be the thread parent
+  const nearbyRes = await fetch("https://slack.com/api/conversations.history", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${READ_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      channel,
+      latest: messageTs,
+      inclusive: true,
+      limit: 10,
+    }),
+  });
+
+  const nearbyData = (await nearbyRes.json()) as { ok: boolean; messages?: (SlackMessage & { reply_count?: number })[] };
+
+  if (nearbyData.ok && nearbyData.messages) {
+    for (const msg of nearbyData.messages) {
+      if (msg.reply_count && msg.reply_count > 0) {
+        const threadRes = await fetch("https://slack.com/api/conversations.replies", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${READ_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            channel,
+            ts: msg.ts,
+            latest: messageTs,
+            inclusive: true,
+          }),
+        });
+
+        const threadData = (await threadRes.json()) as { ok: boolean; messages?: SlackMessage[] };
+        if (threadData.ok && threadData.messages) {
+          const target = threadData.messages.find((m) => m.ts === messageTs);
+          if (target) return target;
+        }
+      }
+    }
+  }
+
+  console.error("Slack message not found:", { channel, messageTs });
+  return null;
 }
 
 /**
