@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { waitUntil } from "@vercel/functions";
 
 import { getAccessTokenFromRefreshToken } from "@/lib/google-auth";
 import { createTask } from "@/lib/google-tasks";
@@ -24,7 +23,6 @@ const SLACK_SIGNING_SECRET = process.env.SLACK_SIGNING_SECRET ?? "";
 
 /**
  * Verify Slack request signature.
- * See: https://api.slack.com/authentication/verifying-requests-from-slack
  */
 async function verifySlackRequest(body: string, headers: Headers): Promise<boolean> {
   if (!SLACK_SIGNING_SECRET) return false;
@@ -34,7 +32,6 @@ async function verifySlackRequest(body: string, headers: Headers): Promise<boole
 
   if (!timestamp || !signature) return false;
 
-  // Reject requests older than 5 minutes
   const now = Math.floor(Date.now() / 1000);
   if (Math.abs(now - Number(timestamp)) > 300) return false;
 
@@ -81,37 +78,30 @@ export async function POST(request: Request) {
 
   const payload = JSON.parse(rawBody) as SlackEvent;
 
-  // Step 1: Handle Slack URL verification challenge
+  // Handle Slack URL verification challenge
   if (payload.type === "url_verification") {
     return NextResponse.json({ challenge: payload.challenge });
   }
 
-  // Step 2: Handle event callbacks
+  // Handle event callbacks
   if (payload.type === "event_callback") {
     const { event } = payload;
 
-    // Only handle reaction_added events for messages
     if (event.type !== "reaction_added" || event.item.type !== "message") {
       return NextResponse.json({ ok: true });
     }
 
-    // Check if the emoji matches our task emoji
     if (!ALL_TASK_EMOJIS.includes(event.reaction)) {
       return NextResponse.json({ ok: true });
     }
 
-    const channel = event.item.channel;
-    const messageTs = event.item.ts;
-    const reactingUser = event.user;
+    // Await task creation directly — total processing is well under Vercel's 10s timeout
+    try {
+      await handleTaskCreation(event.item.channel, event.item.ts, event.user);
+    } catch (err) {
+      console.error("Slack task creation error:", err);
+    }
 
-    // Use waitUntil to keep the serverless function alive for background work
-    waitUntil(
-      handleTaskCreation(channel, messageTs, reactingUser).catch((err) => {
-        console.error("Slack task creation error:", err);
-      }),
-    );
-
-    // Respond immediately to Slack (must be within 3 seconds)
     return NextResponse.json({ ok: true });
   }
 
@@ -133,17 +123,16 @@ async function handleTaskCreation(channel: string, messageTs: string, reactingUs
     return;
   }
 
-  // Truncate long messages for task title (max 200 chars)
   const title = rawText.length > 200 ? rawText.slice(0, 197) + "..." : rawText;
 
-  // 3. Get context info
+  // 3. Get context info in parallel
   const [permalink, channelName, userName] = await Promise.all([
     getMessagePermalink(channel, messageTs),
     getChannelName(channel),
     getSlackUserName(reactingUser),
   ]);
 
-  // 4. Build task notes with Slack context
+  // 4. Build task notes
   const today = new Date().toISOString().slice(0, 10);
   const notes = [
     `[Slack] #${channelName}`,
@@ -154,7 +143,7 @@ async function handleTaskCreation(channel: string, messageTs: string, reactingUs
     .filter(Boolean)
     .join("\n");
 
-  // 5. Get Google access token (server-side, no session)
+  // 5. Get Google access token
   const accessToken = await getAccessTokenFromRefreshToken();
   if (!accessToken) {
     console.error("Could not get Google access token for Slack task creation");
@@ -163,11 +152,10 @@ async function handleTaskCreation(channel: string, messageTs: string, reactingUs
   }
 
   // 6. Create task in Google Tasks
-  const dueDate = `${today}T00:00:00.000Z`;
   const createdTask = await createTask(accessToken, {
     title,
     notes,
-    dueDate,
+    dueDate: `${today}T00:00:00.000Z`,
     priority: 2,
   });
 
