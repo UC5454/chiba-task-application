@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { RefreshCw } from "lucide-react";
 
 import { OverdueSection } from "@/components/tasks/OverdueSection";
 import { TaskCard } from "@/components/tasks/TaskCard";
@@ -18,6 +19,14 @@ export default function TasksPage() {
 
   const { tasks, completionStats, mutate } = useTasks(filter);
   const { toast } = useToast();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await mutate();
+    setIsRefreshing(false);
+    toast.success("最新情報に更新したよ。");
+  }, [mutate, toast]);
 
   useEffect(() => {
     if (showInlineAdd) {
@@ -68,12 +77,23 @@ export default function TasksPage() {
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-[var(--color-foreground)]">タスク</h1>
-        <button
-          onClick={() => setShowInlineAdd(true)}
-          className="text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/8 px-3 py-1.5 rounded-full hover:bg-[var(--color-primary)]/15 transition-colors"
-        >
-          + 追加
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-1 text-xs font-medium text-[var(--color-muted)] bg-[var(--color-surface)] px-3 py-1.5 rounded-full hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-50"
+            aria-label="最新情報に更新"
+          >
+            <RefreshCw size={12} className={isRefreshing ? "animate-spin" : ""} />
+            更新
+          </button>
+          <button
+            onClick={() => setShowInlineAdd(true)}
+            className="text-xs font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/8 px-3 py-1.5 rounded-full hover:bg-[var(--color-primary)]/15 transition-colors"
+          >
+            + 追加
+          </button>
+        </div>
       </div>
 
       <TaskFilter current={filter} onChange={setFilter} />
