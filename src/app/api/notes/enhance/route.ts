@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     // For tags action, try to parse as JSON array
     if (action === "tags") {
       try {
-        const match = result.match(/\[.*\]/s);
+        const match = result.match(/\[[\s\S]*\]/);
         if (match) {
           const tags = JSON.parse(match[0]) as string[];
           return NextResponse.json({ result: tags });
