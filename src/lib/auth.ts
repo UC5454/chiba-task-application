@@ -44,6 +44,8 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
   }
 }
 
+const BASE_URL = process.env.NEXTAUTH_URL || "https://chiba-task-application-khaki.vercel.app";
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -55,6 +57,7 @@ export const authOptions: NextAuthOptions = {
           access_type: "offline",
           response_type: "code",
           scope: GOOGLE_SCOPES,
+          redirect_uri: `${BASE_URL}/api/auth/callback/google`,
         },
       },
     }),
