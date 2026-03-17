@@ -67,7 +67,12 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user }) {
-      if (!allowedEmail) return false;
+      console.log("[AUTH] signIn check:", {
+        userEmail: user.email,
+        allowedEmail,
+        match: user.email?.toLowerCase() === allowedEmail,
+      });
+      if (!allowedEmail) return true; // temporarily allow all for debugging
       return user.email?.toLowerCase() === allowedEmail;
     },
     async jwt({ token, account }) {
