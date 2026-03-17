@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* ── Colors: Neutral-first, Apple/Linear inspired ── */
+  --color-background: #F8F9FB;
+  --color-foreground: #171717;
+  --color-primary: #2563EB;
+  --color-primary-light: #3B82F6;
+  --color-primary-dark: #1D4ED8;
+  --color-primary-subtle: rgba(37, 99, 235, 0.06);
+  --color-priority-high: #EF4444;
+  --color-priority-high-bg: #FEF2F2;
+  --color-priority-mid: #F59E0B;
+  --color-priority-mid-bg: #FFFBEB;
+  --color-priority-low: #22C55E;
+  --color-priority-low-bg: #F0FDF4;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F5F5F5;
+  --color-border: #E5E5E5;
+  --color-border-light: #F5F5F5;
+  --color-muted: #A3A3A3;
+  --color-muted-foreground: #737373;
+  --color-memo: #FFFBEB;
+  --color-overdue-bg: #FEF2F2;
+  --color-success: #22C55E;
+  --color-streak: #F59E0B;
+  --color-gradient-start: #2563EB;
+  --color-gradient-end: #7C3AED;
+  --color-card-border: rgba(0, 0, 0, 0.04);
+
+  --font-sans: "Inter", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+
+  /* ── Radius ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── Shadows: Apple-style soft diffuse ── */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.05), 0 8px 32px rgba(0,0,0,0.04);
+  --shadow-xl: 0 8px 24px rgba(0,0,0,0.06), 0 16px 48px rgba(0,0,0,0.05);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.02), 0 2px 8px rgba(0,0,0,0.03);
+  --shadow-card-hover: 0 2px 4px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.05);
+  --shadow-nav: 0 -1px 12px rgba(0,0,0,0.04);
+  --shadow-sidebar: 1px 0 12px rgba(0,0,0,0.03);
+
+  /* ── Spacing ── */
+  --spacing-card: 16px;
+  --spacing-section: 24px;
+
+  /* ── Spring easing ── */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ADHD配慮: フォーカスリングを目立たせる */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* スクロールバー */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+/* PWA safe area */
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+}
+
+/* ── Glass morphism utility ── */
+.glass {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ── Card base ── */
+.card-elevated {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.3s var(--ease-spring), transform 0.3s var(--ease-spring);
+}
+.card-elevated:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ── タスクカードスワイプアニメーション ── */
+@keyframes slideOutRight {
+  to { transform: translateX(100%); opacity: 0; }
+}
+@keyframes slideOutLeft {
+  to { transform: translateX(-100%); opacity: 0; }
+}
+@keyframes fadeInUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes pulse-gentle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+@keyframes slideIn {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s var(--ease-spring);
+  will-change: transform, opacity;
+}
+.animate-slide-out-right {
+  animation: slideOutRight 0.3s var(--ease-spring) forwards;
+}
+.animate-slide-out-left {
+  animation: slideOutLeft 0.3s var(--ease-spring) forwards;
+}
+.animate-pulse-gentle {
+  animation: pulse-gentle 2s ease-in-out infinite;
+}
+.animate-slide-in {
+  animation: slideIn 0.4s var(--ease-spring);
+}
+
+/* ── ボタンのタップフィードバック ── */
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.btn-press {
+  transition: transform 0.2s var(--ease-spring), opacity 0.2s var(--ease-spring);
+}
+.btn-press:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+.btn-press:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── スピナーアニメーション ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin-fast {
+  animation: spin 0.6s linear infinite;
+}

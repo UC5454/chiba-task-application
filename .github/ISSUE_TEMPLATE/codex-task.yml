@@ -1,0 +1,40 @@
+name: "Codex実装タスク"
+description: "カイトが調査・設計し、Codexに実装を依頼するタスク"
+labels: ["codex"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Codex実装タスク
+        このIssueはカイト_web-team_エンジニアが調査・設計し、Codexに実装を依頼するためのものです。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: "概要"
+      description: "何を修正・実装するのか"
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "修正項目"
+      description: "具体的な修正内容（ファイルパス・期待動作を含む）"
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: "技術的な注意事項"
+      description: "実装時に守るべき制約・設計方針"
+
+  - type: textarea
+    id: checklist
+    attributes:
+      label: "動作確認チェックリスト"
+      description: "実装完了後に確認すべき項目"
+      value: |
+        - [ ] `npm run build` が成功する
+        - [ ]

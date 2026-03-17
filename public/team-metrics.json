@@ -1,0 +1,217 @@
+{
+  "summary": {
+    "skillCalls": 41,
+    "subagentCalls": 146,
+    "mcpCalls": 1854,
+    "messages": 1876,
+    "activeEmployees": 9,
+    "totalEmployees": 19,
+    "sessions": 660,
+    "totalToolCalls": 15094
+  },
+  "toolBreakdown": {
+    "FileOps": 9086,
+    "Other": 1088,
+    "MCP": 1854,
+    "Bash": 2639,
+    "Web": 240,
+    "Skill": 41,
+    "Subagent": 146
+  },
+  "topTools": [
+    {
+      "name": "Read",
+      "count": 5191
+    },
+    {
+      "name": "Bash",
+      "count": 2639
+    },
+    {
+      "name": "Edit",
+      "count": 2120
+    },
+    {
+      "name": "Write",
+      "count": 799
+    },
+    {
+      "name": "Glob",
+      "count": 714
+    },
+    {
+      "name": "ToolSearch",
+      "count": 708
+    },
+    {
+      "name": "Grep",
+      "count": 262
+    },
+    {
+      "name": "mcp__claude-in-chrome__computer",
+      "count": 212
+    },
+    {
+      "name": "mcp__google-workspace__search_gmail_messages",
+      "count": 195
+    },
+    {
+      "name": "mcp__google-workspace__get_gmail_messages_content_batch",
+      "count": 180
+    },
+    {
+      "name": "Task",
+      "count": 146
+    },
+    {
+      "name": "mcp__google-workspace__create_drive_file",
+      "count": 143
+    },
+    {
+      "name": "WebSearch",
+      "count": 125
+    },
+    {
+      "name": "WebFetch",
+      "count": 115
+    },
+    {
+      "name": "TaskUpdate",
+      "count": 112
+    }
+  ],
+  "topMcpTools": [
+    {
+      "name": "claude-in-chrome__computer",
+      "count": 212
+    },
+    {
+      "name": "google-workspace__search_gmail_messages",
+      "count": 195
+    },
+    {
+      "name": "google-workspace__get_gmail_messages_content_batch",
+      "count": 180
+    },
+    {
+      "name": "google-workspace__create_drive_file",
+      "count": 143
+    },
+    {
+      "name": "google-workspace__get_gmail_message_content",
+      "count": 72
+    },
+    {
+      "name": "google-workspace__find_and_replace_doc",
+      "count": 69
+    },
+    {
+      "name": "google-workspace__get_page_thumbnail",
+      "count": 67
+    },
+    {
+      "name": "google-workspace__batch_modify_gmail_message_labels",
+      "count": 57
+    },
+    {
+      "name": "google-workspace__get_doc_content",
+      "count": 57
+    },
+    {
+      "name": "claude-in-chrome__javascript_tool",
+      "count": 56
+    }
+  ],
+  "dailyTrend": [
+    {
+      "date": "2026-02-02",
+      "sessions": 3,
+      "tools": 129,
+      "messages": 14
+    },
+    {
+      "date": "2026-02-03",
+      "sessions": 14,
+      "tools": 637,
+      "messages": 123
+    },
+    {
+      "date": "2026-02-04",
+      "sessions": 71,
+      "tools": 1976,
+      "messages": 239
+    },
+    {
+      "date": "2026-02-05",
+      "sessions": 23,
+      "tools": 596,
+      "messages": 95
+    },
+    {
+      "date": "2026-02-06",
+      "sessions": 233,
+      "tools": 1901,
+      "messages": 338
+    },
+    {
+      "date": "2026-02-07",
+      "sessions": 24,
+      "tools": 629,
+      "messages": 86
+    },
+    {
+      "date": "2026-02-08",
+      "sessions": 94,
+      "tools": 2259,
+      "messages": 228
+    },
+    {
+      "date": "2026-02-09",
+      "sessions": 106,
+      "tools": 3453,
+      "messages": 392
+    },
+    {
+      "date": "2026-02-10",
+      "sessions": 20,
+      "tools": 744,
+      "messages": 52
+    },
+    {
+      "date": "2026-02-11",
+      "sessions": 19,
+      "tools": 580,
+      "messages": 42
+    },
+    {
+      "date": "2026-02-12",
+      "sessions": 10,
+      "tools": 73,
+      "messages": 8
+    },
+    {
+      "date": "2026-02-13",
+      "sessions": 28,
+      "tools": 1296,
+      "messages": 161
+    },
+    {
+      "date": "2026-02-14",
+      "sessions": 36,
+      "tools": 821,
+      "messages": 98
+    }
+  ],
+  "activeEmployeeNames": [
+    "アヤ",
+    "コトハ",
+    "ソウ",
+    "タクミ",
+    "ヒカル",
+    "マコト",
+    "ミナミ",
+    "ユキ",
+    "リン"
+  ],
+  "generatedAt": "2026-02-14T14:45:39.361071+00:00"
+}
