@@ -11,6 +11,11 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const allowedEmail = process.env.ALLOWED_EMAIL?.toLowerCase();
+  if (!allowedEmail || session.user.email?.toLowerCase() !== allowedEmail) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const notionToken = process.env.NOTION_API_KEY;
   if (!notionToken) {
     return NextResponse.json({ error: "NOTION_API_KEY not configured" }, { status: 500 });
