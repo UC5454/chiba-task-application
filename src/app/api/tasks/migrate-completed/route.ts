@@ -71,7 +71,7 @@ export async function POST() {
           {
             id: `migrated-${synced}`,
             title: task.title,
-            dueDate: task.due ?? null,
+            dueDate: task.due || undefined,
             category: undefined,
           },
           "完了"
