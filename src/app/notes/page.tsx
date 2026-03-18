@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Edit3, Hash, Loader2, Plus, Search, Sparkles, StickyNote, Trash2, Wand2, X } from "lucide-react";
+import { Check, Edit3, Hash, Loader2, Plus, Search, Sparkles, StickyNote, Trash2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -73,15 +73,11 @@ function MemoCard({
     setIsEditing(false);
   };
 
-  const handleAiAction = async (action: "polish" | "tags") => {
+  const handleAiAction = async (action: "tags") => {
     setAiLoading(action);
     try {
       const { result } = await enhance(editContent || memo.content, action);
-      if (action === "polish" && typeof result === "string") {
-        setEditContent(result);
-        if (!isEditing) setIsEditing(true);
-        toast.success("AIで整理しました");
-      } else if (action === "tags" && Array.isArray(result)) {
+      if (Array.isArray(result)) {
         const merged = Array.from(new Set([...editTags, ...result]));
         setEditTags(merged);
         if (!isEditing) setIsEditing(true);
@@ -113,14 +109,6 @@ function MemoCard({
       <div className={`absolute top-3 right-3 flex items-center gap-1 transition-opacity duration-200 ${showActions || isEditing ? "opacity-100" : "opacity-0"}`}>
         {!isEditing && (
           <>
-            <button
-              onClick={() => handleAiAction("polish")}
-              disabled={!!aiLoading}
-              className="p-1.5 rounded-lg text-[var(--color-muted)] hover:text-purple-500 hover:bg-purple-50 transition-colors"
-              title="AIで整理"
-            >
-              {aiLoading === "polish" ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-            </button>
             <button
               onClick={() => handleAiAction("tags")}
               disabled={!!aiLoading}
