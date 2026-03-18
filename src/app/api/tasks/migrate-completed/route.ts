@@ -16,10 +16,10 @@ interface GoogleTaskList {
   title: string;
 }
 
-export async function POST() {
+async function migrateCompletedTasks() {
   const accessToken = await getAccessTokenFromSession();
   if (!accessToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized - please login first" }, { status: 401 });
   }
 
   try {
@@ -93,4 +93,13 @@ export async function POST() {
     console.error("Migration error:", err);
     return NextResponse.json({ error: "移植に失敗しました" }, { status: 500 });
   }
+}
+
+// Both GET and POST supported for easy browser testing
+export async function GET() {
+  return migrateCompletedTasks();
+}
+
+export async function POST() {
+  return migrateCompletedTasks();
 }
