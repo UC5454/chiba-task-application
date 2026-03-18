@@ -36,7 +36,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
 
     await completeTask(accessToken, id);
-    await writeTaskHistory({ ...task, category }, "完了").catch((err) => console.warn("writeTaskHistory failed:", err));
+    // Notion書き込みは一旦無効化（ローカル保持）
+    // await writeTaskHistory({ ...task, category }, "完了").catch((err) => console.warn("writeTaskHistory failed:", err));
 
     const tasks = await listTasks(accessToken);
     const remainingTodayTasks = tasks.filter((item) => !item.completed && item.dueDate && isToday(new Date(item.dueDate))).length;
